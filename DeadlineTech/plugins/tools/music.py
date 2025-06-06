@@ -119,46 +119,46 @@ async def download_callback(client: Client, cq: CallbackQuery):
     await cq.message.edit("✅ Done. Use /song for more!")
 
 async def send_audio_by_video_id(client: Client, message: Message, video_id: str):
-    try:
-        videos_search = VideosSearch(video_id, limit=1)
-        result = (await videos_search.next())['result'][0]
-        title = result.get('title', "Unknown Title")
-        duration_str = result.get('duration', '0:00')
-        duration = parse_duration(duration_str)
-        video_url = result.get('link')
-    except Exception:
-        title, duration_str, duration, video_url = "Unknown Title", "0:00", 0, None
+    try:
+        videos_search = VideosSearch(video_id, limit=1)
+        result = (await videos_search.next())['result'][0]
+        title = result.get('title', "Unknown Title")
+        duration_str = result.get('duration', '0:00')
+        duration = parse_duration(duration_str)
+        video_url = result.get('link')
+    except Exception:
+        title, duration_str, duration, video_url = "Unknown Title", "0:00", 0, None
+        
+    file_path = await asyncio.to_thread(api_dl, video_id)
+    if not file_path:
+        return await message.reply_text("❌ Could not download this song.")
 
-    file_path = await asyncio.to_thread(api_dl, video_id)
-    if not file_path:
-        return await message.reply_text("❌ Could not download this song.")
+    caption = f"🎧 <b>{title}</b>\n🕒 Duration: {duration_str}"
+    if video_url:
+    caption += f"\n🔗 <a href=\"{video_url}\">Watch on YouTube</a>"
+    caption += "\n\n🎵 Powered by <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech</a>"
 
-    caption = f"🎧 <b>{title}</b>\n🕒 Duration: {duration_str}"
-    if video_url:
-        caption += f"\n🔗 <a href=\"{video_url}\">Watch on YouTube</a>"
-    caption += "\n\n🎵 Powered by <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech</a>"
-
-    audio_msg = await message.reply_audio(
-        audio=file_path,
-        title=title,
-        performer="DeadlineTech Bot",
-        duration=duration,
-        caption=caption
+    audio_msg = await message.reply_audio(
+        audio=file_path,
+        title=title,
+        performer="DeadlineTech Bot",
+        duration=duration, 
+        caption=caption
     )
 
-    if not is_song_sent(video_id) and SAVE_CHANNEL_ID:
-        try:
-            await client.send_audio(
-                chat_id=SAVE_CHANNEL_ID,
-                audio=file_path,
-                title=title,
-                performer="DeadlineTech Bot",
-                duration=duration,
-                caption=caption
-            )
-            mark_song_as_sent(video_id)
-        except Exception as e:
-            print(f"❌ Error saving to channel: {e}")
+    if not is_song_sent(video_id) and SAVE_CHANNEL_ID:
+        try:
+            await client.send_audio(
+                chat_id=SAVE_CHANNEL_ID,
+                audio=file_path, 
+                title=title,
+                performer="DeadlineTech Bot",
+                duration=duration,
+                caption=caption
+            )
+            mark_song_as_sent(video_id)
+        except Exception as e:
+            print(f"❌ Error saving to channel: {e}")
 
-    asyncio.create_task(remove_file_later(file_path, delay=600))
-    asyncio.create_task(delete_message_later(client, message.chat.id, audio_msg.id, delay=600))
+    asyncio.create_task(remove_file_later(file_path, delay=600))
+    asyncio.create_task(delete_message_later(client, message.chat.id, audio_msg.id, delay=600))
