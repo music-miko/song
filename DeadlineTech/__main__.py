@@ -46,6 +46,7 @@ async def init():
         BotCommand("start", "Sᴛᴀʀᴛ's Tʜᴇ Bᴏᴛ"),
         BotCommand("ping", "Cʜᴇᴄᴋ ɪғ ʙᴏᴛ ɪs ᴀʟɪᴠᴇ"),
         BotCommand("help", "Gᴇᴛ Cᴏᴍᴍᴀɴᴅs Lɪsᴛ"), 
+        BotCommand("music", "download songs 🎵"),
         BotCommand("play", "Pʟᴀʏ Mᴜsɪᴄ ɪɴ Vᴄ"),
         BotCommand("vplay", "starts Streaming the requested Video Song"), 
         BotCommand("playforce", "forces to play your requested song"), 
