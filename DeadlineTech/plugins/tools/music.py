@@ -135,7 +135,7 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
 
     caption = f"🎧 <b>{title}</b>\n🕒 Duration: {duration_str}"
     if video_url:
-    caption += f"\n🔗 <a href=\"{video_url}\">Watch on YouTube</a>"
+        caption += f"\n🔗 <a href=\"{video_url}\">Watch on YouTube</a>"
     caption += "\n\n🎵 Powered by <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech</a>"
 
     audio_msg = await message.reply_audio(
