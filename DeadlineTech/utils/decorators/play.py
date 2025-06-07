@@ -37,7 +37,7 @@ logging.basicConfig(
 )
 
 links = {}
-ONWER_ID = 6848223695
+OWNER_ID = 6848223695
 
 def PlayWrapper(command):
     async def wrapper(client, message):
