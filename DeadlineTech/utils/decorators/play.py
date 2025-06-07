@@ -159,7 +159,7 @@ def PlayWrapper(command):
                         notification_text = (
                             f"<b>Too many joined groups/channels</b>\n\n"
                             f"<pre>⚠️ Assistant #{userbot.id} could not join: {chat_title} ({chat_id})</pre>\n\n"
-                            f"🧹 <b>Action:</b> Please run <code>/cleanassistants {userbot.id}</code> to clean."
+                            f"🧹 Action: Please run <code>/cleanassistants {userbot.id}</code> to clean."
                         )
                         for sudo_id in SUDOERS:
                             try:
@@ -174,7 +174,7 @@ def PlayWrapper(command):
                     except RPCError as e:
                         logger.error(f"RPCError: {traceback.format_exc()}")
                         return await message.reply_text(
-                            f"🚫 <b>RPC Error:</b> <code>{type(e).__name__}</code>"
+                            f"🚫 <b>RPC Error:</b>\n<pre>{type(e).__name__}</pre>"
                         )
 
             logger.info(
@@ -197,7 +197,7 @@ def PlayWrapper(command):
             logger.exception(f"Unhandled exception in PlayWrapper: {ex}")
             try:
                 await message.reply_text(
-                    f"🚫 <b>Unexpected Error:</b>\n<code>{str(ex)}</code>",
+                    f"🚫 <b>Unexpected Error:</b>\n<pre>{str(ex)}</pre>",
                     disable_web_page_preview=True,
                 )
             except:
