@@ -167,7 +167,7 @@ def PlayWrapper(command):
                             except Exception as e:
                                 logger.error(f"Notification error for {sudo_id}: {e}")
                         return await message.reply_text(
-                            f"» 𝖲𝗈𝗆𝖾𝗍𝗁𝗂𝗇𝗀 𝗐𝖾𝗇𝗍 𝗐𝗋𝗈𝗇𝗀 𝗐𝗁𝗂𝗅𝖾 𝗉𝗋𝗈𝖼𝖾𝗌𝗌𝗂𝗇𝗀 𝗒𝗈𝗎𝗋 𝗋𝖾𝗊𝗎𝖾𝗌𝗍.\n\n𝖤𝗑𝖼𝖾𝗉𝗍𝗂𝗈𝗇: <code>ChannelToMuch</code>"
+                            "» 𝖲𝗈𝗆𝖾𝗍𝗁𝗂𝗇𝗀 𝗐𝖾𝗇𝗍 𝗐𝗋𝗈𝗇𝗀 𝗐𝗁𝗂𝗅𝖾 𝗉𝗋𝗈𝖼𝖾𝗌𝗌𝗂𝗇𝗀 𝗒𝗈𝗎𝗋 𝗋𝖾𝗊𝗎𝖾𝗌𝗍.\n\n𝖤𝗑𝖼𝖾𝗉𝗍𝗂𝗈𝗇: <code>ChannelToMuch</code>"
                         )
                     except ChatAdminRequired:
                         return await message.reply_text(_["call_1"])
