@@ -2,11 +2,12 @@ from pyrogram import filters
 from pyrogram.types import Message
 
 from DeadlineTech import app
+from DeadlineTech.misc import SUDOERS
 from DeadlineTech.utils.database import get_client, is_active_chat
-from config import OWNER_ID, LOGGER_ID
+from config import LOGGER_ID
 from pyrogram.enums import ChatType
 
-@app.on_message(filters.command("cleanassistants") & filters.user(OWNER_ID))
+@app.on_message(filters.command("cleanassistants") & SUDOERS)
 async def clean_assistants_command(client, message: Message):
     from DeadlineTech.core.userbot import assistants
 
