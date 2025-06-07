@@ -150,7 +150,6 @@ def PlayWrapper(command):
                         pass
                     except ChannelsTooMuch:
                         # Notify OWNER and all SUDOERS with assistant info
-                        notified_users = list(set([OWNER_ID] + SUDOERS))
                         chat_title = "this chat"
                         try:
                             chat_info = await app.get_chat(chat_id)
