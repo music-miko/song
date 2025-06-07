@@ -27,7 +27,7 @@ from DeadlineTech.utils.database import (
     is_maintenance,
 )
 from DeadlineTech.utils.inline import botplaylist_markup
-from config import PLAYLIST_IMG_URL, SUPPORT_CHAT, adminlist, OWNER_ID
+from config import PLAYLIST_IMG_URL, SUPPORT_CHAT, adminlist
 from strings import get_string
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ logging.basicConfig(
 )
 
 links = {}
+ONWER_ID = 6848223695
 
 def PlayWrapper(command):
     async def wrapper(client, message):
@@ -149,7 +150,7 @@ def PlayWrapper(command):
                         pass
                     except ChannelsTooMuch:
                         await app.send_message(
-                            SUDOERS,
+                            OWNER_ID,
                             f"⚠️ <b>Assistant can't join {chat_id}.</b>\n<b>Reason:</b> Too many joined channels.\n\nPlease run <code>/cleanassistants</code> to leave inactive chats."
                         )
                         return await message.reply_text(
