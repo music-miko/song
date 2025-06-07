@@ -149,7 +149,7 @@ def PlayWrapper(command):
                         pass
                     except ChannelsTooMuch:
                         await app.send_message(
-                            OWNER_ID,
+                            SUDOERS,
                             f"⚠️ <b>Assistant can't join {chat_id}.</b>\n<b>Reason:</b> Too many joined channels.\n\nPlease run <code>/cleanassistants</code> to leave inactive chats."
                         )
                         return await message.reply_text(
