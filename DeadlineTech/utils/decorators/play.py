@@ -53,7 +53,7 @@ def PlayWrapper(command):
                     )
                 )
 
-            if await is_maintenance() and message.from_user.id not in SUDOERS:
+            if await is_maintenance() is False and message.from_user.id not in SUDOERS:
                 return await message.reply_text(
                     f"{app.mention} ɪs ᴜɴᴅᴇʀ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ.\nPlease visit <a href={SUPPORT_CHAT}>support chat</a>.",
                     disable_web_page_preview=True
@@ -157,9 +157,9 @@ def PlayWrapper(command):
                         except Exception:
                             pass
                         notification_text = (
-                            f"⚠️ <b>Assistant #{userbot.id} could not join:</b> <code>{chat_title}</code> (<code>{chat_id}</code>)\n"
-                            f"🚫 <b>Reason:</b> <code>Too many joined groups/channels</code>\n"
-                            f"🧹 <b>Action:</b> Please run <code>/cleanassistants</code> to clean inactive chats.\n"
+                            f"<b>Too many joined groups/channels</b>\n\n"
+                            f"<pre>⚠️ Assistant #{userbot.id} could not join: {chat_title} ({chat_id})</pre>\n\n"
+                            f"🧹 <b>Action:</b> Please run <code>/cleanassistants {userbot.id}</code> to clean."
                         )
                         for sudo_id in SUDOERS:
                             try:
