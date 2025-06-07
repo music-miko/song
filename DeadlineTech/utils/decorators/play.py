@@ -37,7 +37,7 @@ logging.basicConfig(
 )
 
 links = {}
-OWNER_ID = 6848223695
+
 
 def PlayWrapper(command):
     async def wrapper(client, message):
@@ -149,26 +149,34 @@ def PlayWrapper(command):
                     except UserAlreadyParticipant:
                         pass
                     except ChannelsTooMuch:
-                        await app.send_message(
-                            OWNER_ID,
-                            f"⚠️ <b>Assistant can't join {chat_id}.</b>\n<b>Reason:</b> Too many joined channels.\n\nPlease run <code>/cleanassistants</code> to leave inactive chats."
+                        # Notify OWNER and all SUDOERS with assistant info
+                        notified_users = list(set([OWNER_ID] + SUDOERS))
+                        chat_title = "this chat"
+                        try:
+                            chat_info = await app.get_chat(chat_id)
+                            chat_title = chat_info.title or chat_title
+                        except Exception:
+                            pass
+                        notification_text = (
+                            f"⚠️ <b>Assistant #{userbot.id} could not join:</b> <code>{chat_title}</code> (<code>{chat_id}</code>)\n"
+                            f"🚫 <b>Reason:</b> <code>Too many joined groups/channels</code>\n"
+                            f"🧹 <b>Action:</b> Please run <code>/cleanassistants</code> to clean inactive chats.\n"
                         )
+                        for sudo_id in SUDOERS:
+                            try:
+                                await app.send_message(sudo_id, notification_text)
+                            except Exception as e:
+                                logger.error(f"Notification error for {sudo_id}: {e}")
                         return await message.reply_text(
                             "🚫 Assistant has joined too many chats."
                         )
-                    except Exception as e:
-                        logger.error(f"userbot.join_chat error: {traceback.format_exc()}")
+                    except ChatAdminRequired:
+                        return await message.reply_text(_["call_1"])
+                    except RPCError as e:
+                        logger.error(f"RPCError: {traceback.format_exc()}")
                         return await message.reply_text(
-                            _["call_3"].format(app.mention, type(e).__name__)
+                            f"🚫 <b>RPC Error:</b> <code>{type(e).__name__}</code>"
                         )
-
-                except ChatAdminRequired:
-                    return await message.reply_text(_["call_1"])
-                except RPCError as e:
-                    logger.error(f"RPCError: {traceback.format_exc()}")
-                    return await message.reply_text(
-                        f"🚫 <b>RPC Error:</b> <code>{type(e).__name__}</code>"
-                    )
 
             logger.info(
                 f"▶️ A Song is played by {message.from_user.id} in {chat_id}"
