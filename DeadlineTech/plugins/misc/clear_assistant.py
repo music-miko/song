@@ -33,7 +33,7 @@ async def clean_assistant_chats(client, assistant_num):
     return total_left
 
 
-@app.on_message(filters.command("cleanassistants") & filters.user(SUDOERS))
+@app.on_message(filters.command("cleanassistants") & filters.private & SUDOERS )
 async def clean_assistants_command(client, message: Message):
     args = message.text.split()
     if len(args) == 1:
