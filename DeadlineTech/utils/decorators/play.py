@@ -1,4 +1,4 @@
-# Powered by DeadlineTech
+# Powered by Team DeadlineTech
 
 import asyncio
 import logging
@@ -10,6 +10,7 @@ from pyrogram.errors import (
     InviteRequestSent,
     UserAlreadyParticipant,
     UserNotParticipant,
+    ChannelsTooMuch,
     RPCError,
 )
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -26,10 +27,9 @@ from DeadlineTech.utils.database import (
     is_maintenance,
 )
 from DeadlineTech.utils.inline import botplaylist_markup
-from config import PLAYLIST_IMG_URL, SUPPORT_CHAT, adminlist
+from config import PLAYLIST_IMG_URL, SUPPORT_CHAT, adminlist, OWNER_ID
 from strings import get_string
 
-# Setup logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO,
@@ -52,7 +52,7 @@ def PlayWrapper(command):
                     )
                 )
 
-            if await is_maintenance() is False and message.from_user.id not in SUDOERS:
+            if await is_maintenance() and message.from_user.id not in SUDOERS:
                 return await message.reply_text(
                     f"{app.mention} ɪs ᴜɴᴅᴇʀ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ.\nPlease visit <a href={SUPPORT_CHAT}>support chat</a>.",
                     disable_web_page_preview=True
@@ -147,6 +147,14 @@ def PlayWrapper(command):
                         await msg.edit(_["call_5"].format(app.mention))
                     except UserAlreadyParticipant:
                         pass
+                    except ChannelsTooMuch:
+                        await app.send_message(
+                            OWNER_ID,
+                            f"⚠️ <b>Assistant can't join {chat_id}.</b>\n<b>Reason:</b> Too many joined channels.\n\nPlease run <code>/cleanassistants</code> to leave inactive chats."
+                        )
+                        return await message.reply_text(
+                            "🚫 Assistant has joined too many chats."
+                        )
                     except Exception as e:
                         logger.error(f"userbot.join_chat error: {traceback.format_exc()}")
                         return await message.reply_text(
@@ -154,7 +162,6 @@ def PlayWrapper(command):
                         )
 
                 except ChatAdminRequired:
-                    logger.error("Bot must be admin to get assistant's status.")
                     return await message.reply_text(_["call_1"])
                 except RPCError as e:
                     logger.error(f"RPCError: {traceback.format_exc()}")
