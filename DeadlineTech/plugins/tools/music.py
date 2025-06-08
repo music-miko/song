@@ -141,7 +141,7 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
     audio_msg = await message.reply_audio(
         audio=file_path,
         title=title,
-        performer="DeadlineTech Bot",
+        performer="DeadlineTech",
         duration=duration, 
         caption=caption, 
         reply_markup=InlineKeyboardMarkup([
@@ -154,9 +154,13 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
                 chat_id=SAVE_CHANNEL_ID,
                 audio=file_path, 
                 title=title,
-                performer="DeadlineTech Bot",
+                performer="DeadlineTech",
                 duration=duration,
                 caption=caption
+                reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("Powered by", url=f"https://t.me/DeadlineTechTeam")]
+                ]))
+
             )
             mark_song_as_sent(video_id)
         except Exception as e:
