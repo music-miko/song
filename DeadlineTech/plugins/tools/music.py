@@ -161,7 +161,6 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
                 [InlineKeyboardButton("Powered by", url=f"https://t.me/DeadlineTechTeam")]
                 ]))
 
-            )
             mark_song_as_sent(video_id)
         except Exception as e:
             print(f"❌ Error saving to channel: {e}")
