@@ -1,18 +1,9 @@
 # Powered by DeadlineTech
 
 from pyrogram import Client, filters
-from DeadlineTech.utils.crash_reporter import sudo_alert_on_crash
 from DeadlineTech import app
 from pyrogram.types import Message, ChatMemberUpdated
 from pyrogram.enums import ChatMemberStatus
-
-
-@app.on_message(filters.command("testcrash"))
-@sudo_alert_on_crash
-async def test_crash(_, message: Message):
-    # Force a crash
-    1 / 0 
-
 
 
 # ✅ Handle member joins, leaves, promotions, demotions
@@ -63,9 +54,3 @@ async def pinned_message_handler(client: Client, message: Message):
     else:
         print(f"[PINNED] A message was pinned in {chat.title} ({chat.id}), but content is not accessible.")
 
-
-# ✅ Handle deleted messages
-@app.on_deleted_messages()
-async def deleted_message_handler(client: Client, messages: list):
-    for msg in messages:
-        print(f"[DELETED] Message deleted in chat_id: {msg.chat.id} - Msg ID: {msg.id}")
