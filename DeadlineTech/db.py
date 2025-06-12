@@ -19,7 +19,9 @@ def mark_song_as_sent(video_id: str, file_id: str):
 # Check if song exists and get file_id
 def get_saved_file_id(video_id: str) -> str | None:
     result = songs_collection.find_one({"video_id": video_id})
-    return result["file_id"] if result else None
+    if result and "file_id" in result:
+        return result["file_id"]
+    return None
 
 # Optional: Clear cache (if needed)
 def clear_all_cached_songs():
