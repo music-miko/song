@@ -1,7 +1,7 @@
 from pyrogram import filters
 from pyrogram.types import Message
 from DeadlineTech import app  # assuming 'app' is your Pyrogram client
-from DeadlineTech.platform.YouTube import get_stats
+from DeadlineTech.platforms.Youtube import get_stats
 
 OWNER_ID = 6848223695
 
