@@ -147,7 +147,7 @@ async def download_callback(client: Client, cq: CallbackQuery):
     await client.send_chat_action(cq.message.chat.id, ChatAction.UPLOAD_AUDIO)
     await cq.message.edit("⏳ <i>Downloading and processing audio...</i>")
     await send_audio_by_video_id(client, cq.message, video_id)
-    await cq.message.edit("✅ <b>Done!</b> Send /song to get more music 🎵")
+    await cq.message.edit("✅ <b>Done!</b> Send /music to get more music 🎵")
 
 async def send_audio_by_video_id(client: Client, message: Message, video_id: str):
     try:
