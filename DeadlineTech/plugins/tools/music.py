@@ -1,18 +1,18 @@
-# 🎧 DeadlineTech Music Bot (Enhanced with Logging)
+# 🎿 DeadlineTech Music Bot (Enhanced with Logging & Thumbnails + File Cache)
 
 import os
 import re
 import asyncio
 import requests
 import logging
+import urllib.request
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.enums import ChatAction
 from youtubesearchpython.__future__ import VideosSearch
-
-from DeadlineTech import app
 from config import API_KEY, API_BASE_URL, SAVE_CHANNEL_ID
-from DeadlineTech.db import is_song_sent, mark_song_as_sent
+from DeadlineTech import app
+from DeadlineTech.db import get_saved_file_id, mark_song_as_sent, is_song_sent
 
 # 📄 Logging Setup
 log_dir = "logs"
@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 MIN_FILE_SIZE = 51200
 DOWNLOADS_DIR = "downloads"
 
+# 🔽 Extract video ID from various YouTube link formats
 def extract_video_id(link: str) -> str | None:
     patterns = [
         r'youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=)([0-9A-Za-z_-]{11})',
@@ -46,15 +47,26 @@ def extract_video_id(link: str) -> str | None:
             return match.group(1)
     return None
 
+# 🔽 Download thumbnail
+
+def download_thumbnail(video_id: str) -> str | None:
+    thumb_url = f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+    thumb_path = os.path.join(DOWNLOADS_DIR, f"{video_id}.jpg")
+    try:
+        urllib.request.urlretrieve(thumb_url, thumb_path)
+        return thumb_path
+    except Exception as e:
+        logger.warning(f"Thumbnail download failed: {e}")
+        return None
+
+# 🔽 Download audio using external API
 def api_dl(video_id: str) -> str | None:
     api_url = f"{API_BASE_URL}/download/song/{video_id}?key={API_KEY}"
     os.makedirs(DOWNLOADS_DIR, exist_ok=True)
     file_path = os.path.join(DOWNLOADS_DIR, f"{video_id}.mp3")
-
     if os.path.exists(file_path):
         logger.info(f"File already exists: {file_path}")
         return file_path
-
     try:
         logger.info(f"Requesting song from API: {api_url}")
         response = requests.get(api_url, stream=True, timeout=15)
@@ -107,7 +119,7 @@ def parse_duration(duration: str) -> int:
 async def song_command(client: Client, message: Message):
     if len(message.command) < 2:
         return await message.reply_text(
-            "🎧 <b>How to use:\n</b>Send <code>/music [song name or YouTube link]</code>",)
+            "🎿 <b>How to use:</b>\nSend <code>/music [song name or YouTube link]</code>")
 
     query = message.text.split(None, 1)[1].strip()
     logger.info(f"Received /music command: {query}")
@@ -143,7 +155,7 @@ async def song_command(client: Client, message: Message):
 async def download_callback(client: Client, cq: CallbackQuery):
     video_id = cq.data.split("_", 1)[1]
     logger.info(f"Download selected via button: {video_id}")
-    await cq.answer("🎧 Starting download...")
+    await cq.answer("🎿 Starting download...")
     await client.send_chat_action(cq.message.chat.id, ChatAction.UPLOAD_AUDIO)
     await cq.message.edit("⏳ <i>Downloading and processing audio...</i>")
     await send_audio_by_video_id(client, cq.message, video_id)
@@ -162,45 +174,61 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
         logger.warning(f"Failed to fetch metadata: {e}")
         title, duration_str, duration, video_url = "Unknown Title", "0:00", 0, None
 
+    thumb_path = await asyncio.to_thread(download_thumbnail, video_id)
+
+    # ✅ Use saved file_id if exists
+    existing_file_id = get_saved_file_id(video_id)
+    if existing_file_id:
+        audio_msg = await message.reply_audio(
+            audio=existing_file_id,
+            title=title,
+            performer="DeadlineTech",
+            duration=duration,
+            caption=f"🎿 <b>{title}</b>\n🕒 <b>Duration:</b> {duration_str}\n🔗 <a href=\"{video_url}\">Watch on YouTube</a>\n\n🎶 Requested by: <b>{message.from_user.first_name}</b>\n⚡ <i>Enjoy your track with</i> <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech</a>",
+            thumb=thumb_path if thumb_path else None,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎼 More Music", url="https://t.me/DeadlineTechMusic")]
+            ])
+        )
+        logger.info(f"🪄 Sent from cache: {video_id}")
+        return
+
     file_path = await asyncio.to_thread(api_dl, video_id)
     if not file_path:
         return await message.reply_text("❌ <b>Failed to download the song.</b>")
-
-    caption = (
-        f"🎧 <b>{title}</b>\n"
-        f"🕒 <b>Duration:</b> {duration_str}\n"
-        f"🔗 <a href=\"{video_url}\">Watch on YouTube</a>\n\n"
-        f"🚀 <i>Powered by</i> <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech</a>\n"
-    )
 
     audio_msg = await message.reply_audio(
         audio=file_path,
         title=title,
         performer="DeadlineTech",
         duration=duration,
-        caption=caption,
+        caption=f"🎿 <b>{title}</b>\n🕒 <b>Duration:</b> {duration_str}\n🔗 <a href=\"{video_url}\">Watch on YouTube</a>\n\n🎶 Requested by: <b>{message.from_user.first_name}</b>\n⚡ <i>Enjoy your track with</i> <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech</a>",
+        thumb=thumb_path if thumb_path else None,
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🎼 More Music", url="https://t.me/DeadlineTechMusic")],
+            [InlineKeyboardButton("🎼 More Music", url="https://t.me/DeadlineTechMusic")]
         ])
     )
 
     if not is_song_sent(video_id) and SAVE_CHANNEL_ID:
         try:
-            await client.send_audio(
+            sent = await client.send_audio(
                 chat_id=SAVE_CHANNEL_ID,
                 audio=file_path,
                 title=title,
                 performer="DeadlineTech",
                 duration=duration,
-                caption=caption,
+                caption=f"🎼 <b>{title}</b>\n🕒 Duration: {duration_str}\n📱 Source: <a href=\"{video_url}\">YouTube</a>\n🔊 Delivered by: <a href=\"https://t.me/DeadlineTechMusic\">DeadlineTech Music Bot</a>",
+                thumb=thumb_path if thumb_path else None,
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("Powered by", url="https://t.me/DeadlineTechTeam")]
+                    [InlineKeyboardButton("🎧 Get Your Music", url="https://t.me/DeadlineTechMusic")]
                 ])
             )
-            mark_song_as_sent(video_id)
-            logger.info(f"✅ Saved to channel: {SAVE_CHANNEL_ID}")
+            mark_song_as_sent(video_id, sent.audio.file_id)
+            logger.info(f"✅ Saved to channel and cached: {SAVE_CHANNEL_ID}")
         except Exception as e:
             logger.error(f"❌ Error saving to channel: {e}")
 
+    if thumb_path:
+        asyncio.create_task(remove_file_later(thumb_path))
     asyncio.create_task(remove_file_later(file_path))
     asyncio.create_task(delete_message_later(client, message.chat.id, audio_msg.id))
