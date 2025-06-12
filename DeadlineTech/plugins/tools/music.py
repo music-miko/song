@@ -107,12 +107,10 @@ def parse_duration(duration: str) -> int:
 async def song_command(client: Client, message: Message):
     if len(message.command) < 2:
         return await message.reply_text(
-            "🎧 <b>How to use:</b>
-Send <code>/song [song name or YouTube link]</code>",
-        )
+            "🎧 <b>How to use:</b>Send <code>/music [song name or YouTube link]</code>",)
 
     query = message.text.split(None, 1)[1].strip()
-    logger.info(f"Received /song command: {query}")
+    logger.info(f"Received /music command: {query}")
     video_id = extract_video_id(query)
 
     if video_id:
@@ -169,13 +167,9 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
         return await message.reply_text("❌ <b>Failed to download the song.</b>")
 
     caption = (
-        f"🎧 <b>{title}</b>
-"
-        f"🕒 <b>Duration:</b> {duration_str}
-"
-        f"🔗 <a href=\"{video_url}\">Watch on YouTube</a>
-
-"
+        f"🎧 <b>{title}</b>"
+        f"🕒 <b>Duration:</b> {duration_str}"
+        f"🔗 <a href=\"{video_url}\">Watch on YouTube</a>"
         f"🚀 <i>Powered by</i> <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech</a>"
     )
 
