@@ -63,7 +63,7 @@ def api_dl(video_id: str) -> str | None:
 
     # ✅ Check if already downloaded
     if os.path.exists(file_path):
-        print(f"{file_path} already exists. Skipping download.")
+        print(f"Song file {file_path} already exists. Skipping download 📥")
         return file_path
 
     try:
@@ -83,7 +83,7 @@ def api_dl(video_id: str) -> str | None:
                 os.remove(file_path)
                 return None
 
-            print(f"Downloaded {file_path} ({file_size} bytes)")
+            print(f" Song Downloaded Successfully {file_path} ({file_size} bytes) ✅")
             return file_path
 
         else:
