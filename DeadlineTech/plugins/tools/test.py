@@ -5,7 +5,7 @@ from DeadlineTech.platforms.Youtube import get_stats
 
 OWNER_ID = 6848223695
 
-@app.on_message(filters.command("stats") & filters.user(OWNER_ID))
+@app.on_message(filters.command("api") & filters.user(OWNER_ID))
 async def show_stats(_, message: Message):
-    stats = await get_stats()
-    await message.reply_text(f"<pre>{stats}</pre>")
+    stats = await get_stats()
+    await message.reply_text(f"<blockquote>{stats}</blockquote>")
