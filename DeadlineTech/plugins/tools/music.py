@@ -195,13 +195,15 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
 async def handle_playlist(client: Client, message: Message, playlist_id: str, status: Message):
     try:
         pl = Playlist(f"https://www.youtube.com/playlist?list={playlist_id}")
-        data = await pl.next()
-        videos = data.get("videos", [])
+        await pl.fetch()  # fetch playlist data
+
+        videos = pl.videos  # this is now correct
 
         if not videos:
             return await status.edit("❌ Playlist is empty.")
 
         await status.edit(f"🎶 Found {len(videos)} songs.\nStarting download...")
+
         for video in videos:
             await send_audio_by_video_id(client, message, video["id"], status)
             await asyncio.sleep(1)
