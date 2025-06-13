@@ -187,7 +187,7 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
             caption=f"🎿 <b>{title}</b>\n🕒 <b>Duration:</b> {duration_str}\n🔗 <a href=\"{video_url}\">Watch on YouTube</a>\n\n🎶 Requested by: <b>{message.from_user.first_name}</b>\n⚡ <i>Enjoy your track with</i> <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech</a>",
             thumb=thumb_path if thumb_path else None,
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🎼 More Music", url="https://t.me/DeadlineTechMusic")]
+                [InlineKeyboardButton("🎧 Get Your Music", url="https://t.me/DeadlineTechMusic")]
             ])
         )
         logger.info(f"🪄 Sent from cache: {video_id}")
@@ -205,7 +205,7 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
         caption=f"🎿 <b>{title}</b>\n🕒 <b>Duration:</b> {duration_str}\n🔗 <a href=\"{video_url}\">Watch on YouTube</a>\n\n🎶 Requested by: <b>{message.from_user.first_name}</b>\n⚡ <i>Enjoy your track with</i> <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech</a>",
         thumb=thumb_path if thumb_path else None,
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🎼 More Music", url="https://t.me/DeadlineTechMusic")]
+            [InlineKeyboardButton("🎧 Get Your Music", url="https://t.me/DeadlineTechMusic")]
         ])
     )
 
@@ -217,12 +217,9 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
                 title=title,
                 performer="DeadlineTech",
                 duration=duration,
-                caption=f"🎼 <b>{title}</b>\n🕒 Duration: {duration_str}\n📱 Source: <a href=\"{video_url}\">YouTube</a>\n🔊 Delivered by: <a href=\"https://t.me/DeadlineTechMusic\">DeadlineTech Music Bot</a>",
-                thumb=thumb_path if thumb_path else None,
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🎧 Get Your Music", url="https://t.me/DeadlineTechMusic")]
-                ])
-            )
+                caption=f"🎼 <b>{title}</b>\n🕒 Duration: {duration_str}\n📱 Source: <a href=\"{video_url}\">YouTube</a>\n🔊 Delivered by: <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech Music Bot</a>",
+                thumb=thumb_path if thumb_path else None
+            ) 
             mark_song_as_sent(video_id, sent.audio.file_id)
             logger.info(f"✅ Saved to channel and cached: {SAVE_CHANNEL_ID}")
         except Exception as e:
