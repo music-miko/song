@@ -159,7 +159,7 @@ def PlayWrapper(command):
                         notification_text = (
                             f"<b>Too many joined groups/channels</b>\n\n"
                             f"<pre>⚠️ Assistant #{userbot.id} could not join: {chat_title} ({chat_id})</pre>\n\n"
-                            f"🧹 Action: Please run <code>/cleanassistants {userbot.id}</code> to clean."
+                            f"🧹 Action: Please run <code>/cleanassistants </code> to clean."
                         )
                         for sudo_id in SUDOERS:
                             try:
