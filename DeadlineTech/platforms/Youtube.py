@@ -9,13 +9,12 @@ from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch
 from DeadlineTech.utils.database import is_on_off
 from DeadlineTech.utils.formatters import time_to_seconds
+from config import API_KEY, API_BASE_URL
 
-import os
 import glob
 import random
 import logging
 import requests
-import os
 import time
 
 total_request = 0
@@ -23,9 +22,6 @@ total_failed_api = 0
 total_failed = 0
 
 
-# ✅ Configurable constants
-API_KEY = "AXETa3XBAanMBHwWslJRUmB9"
-API_BASE_URL = "http://165.22.208.11:5000"
 
 MIN_FILE_SIZE = 51200
 
