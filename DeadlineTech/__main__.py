@@ -67,13 +67,14 @@ async def init():
         BotCommand("seek", "seek the stream to the given duration"), 
         BotCommand("seekback", "backward seek the stream"), 
         BotCommand("speed", "for adjusting the audio playback speed"), 
-        BotCommand("loop", "enables the loop for the given value")
+        BotCommand("loop", "enables the loop for the given value"), 
+        BotCommand("stats", "check statistics of the Bot")
     ])
 
     
     for all_module in ALL_MODULES:
         importlib.import_module("DeadlineTech.plugins" + all_module)
-    LOGGER("DeadlineTech.plugins").info("Successfully Imported Modules...")
+    LOGGER("DeadlineTech.plugins").info("✅ All required modules imported. Starting DeadlineTech Bot initialization...")
     await userbot.start()
     await Anony.start()
     try:
