@@ -47,7 +47,7 @@ class Userbot(Client):
         )
 
     async def start(self):
-        LOGGER(__name__).info(f"Starting Assistants...")
+        LOGGER(__name__).info(f"✨ Spawning assistants... standby!")
         if config.STRING1:
             await self.one.start()
             try:
@@ -67,7 +67,7 @@ class Userbot(Client):
             self.one.name = self.one.me.mention
             self.one.username = self.one.me.username
             assistantids.append(self.one.id)
-            LOGGER(__name__).info(f"Assistant Started as {self.one.name}")
+            LOGGER(__name__).info(f"📡 Assistant 1 active: running as {self.one.name}")
 
         if config.STRING2:
             await self.two.start()
@@ -88,7 +88,7 @@ class Userbot(Client):
             self.two.name = self.two.me.mention
             self.two.username = self.two.me.username
             assistantids.append(self.two.id)
-            LOGGER(__name__).info(f"Assistant Two Started as {self.two.name}")
+            LOGGER(__name__).info(f"📡 Assistant 2 active: running as {self.two.name}")
 
         if config.STRING3:
             await self.three.start()
@@ -109,7 +109,7 @@ class Userbot(Client):
             self.three.name = self.three.me.mention
             self.three.username = self.three.me.username
             assistantids.append(self.three.id)
-            LOGGER(__name__).info(f"Assistant Three Started as {self.three.name}")
+            LOGGER(__name__).info(f"📡 Assistant 3 active: running as  {self.three.name}")
 
         if config.STRING4:
             await self.four.start()
@@ -130,7 +130,7 @@ class Userbot(Client):
             self.four.name = self.four.me.mention
             self.four.username = self.four.me.username
             assistantids.append(self.four.id)
-            LOGGER(__name__).info(f"Assistant Four Started as {self.four.name}")
+            LOGGER(__name__).info(f"📡 Assistant 4 active: running as  {self.four.name}")
 
         if config.STRING5:
             await self.five.start()
@@ -151,7 +151,7 @@ class Userbot(Client):
             self.five.name = self.five.me.mention
             self.five.username = self.five.me.username
             assistantids.append(self.five.id)
-            LOGGER(__name__).info(f"Assistant Five Started as {self.five.name}")
+            LOGGER(__name__).info(f"📡 Assistant 5 active: running as {self.five.name}")
 
     async def stop(self):
         LOGGER(__name__).info(f"Stopping Assistants...")
