@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime, timedelta
 import pytz
 
@@ -8,44 +9,71 @@ import config
 from DeadlineTech import app
 from DeadlineTech.utils.database import get_client, is_active_chat
 
-# Calculate seconds until next 4:35 AM
-def seconds_until_435am():
-    tz = pytz.timezone("Asia/Kolkata")
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - [%(levelname)s] - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("AutoLeave")
+
+# Constants
+EXCLUDED_CHAT_IDS = {config.LOGGER_ID}
+MAX_LEAVES_PER_RUN = 200
+TIMEZONE = "Asia/Kolkata"
+TARGET_HOUR = 4
+TARGET_MINUTE = 35
+
+def seconds_until_target_time(hour: int = TARGET_HOUR, minute: int = TARGET_MINUTE) -> float:
+    """Calculate seconds remaining until the next target time (default: 4:35 AM IST)."""
+    tz = pytz.timezone(TIMEZONE)
     now = datetime.now(tz)
-    target = now.replace(hour=4, minute=35, second=0, microsecond=0)
+    target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
     if now >= target:
         target += timedelta(days=1)
     return (target - now).total_seconds()
-    
+
+async def leave_inactive_chats(client, client_num: int):
+    """Make the client leave inactive chats."""
+    left_count = 0
+    try:
+        async for dialog in client.get_dialogs():
+            chat = dialog.chat
+            if chat.type in {ChatType.SUPERGROUP, ChatType.GROUP, ChatType.CHANNEL}:
+                if chat.id in EXCLUDED_CHAT_IDS:
+                    continue
+                if left_count >= MAX_LEAVES_PER_RUN:
+                    break
+                if not await is_active_chat(chat.id):
+                    try:
+                        await client.leave_chat(chat.id)
+                        logger.info(f"{client.me.first_name} left inactive chat: {chat.title} ({chat.id})")
+                        left_count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to leave chat {chat.title} ({chat.id}): {e}")
+    except Exception as e:
+        logger.error(f"Assistant {client_num} failed to fetch dialogs: {e}")
+
 async def auto_leave():
-    if config.AUTO_LEAVING_ASSISTANT:
-        print("DeadlineTech.plugins.misc.Auto_leave Task started.")
-        while True:
-            sleep_duration = seconds_until_435am()
-            print(f"DeadlineTech.plugins.misc.Auto_leave Sleeping for {sleep_duration} seconds until 4:35 AM.")
-            await asyncio.sleep(sleep_duration)
+    """Run auto leave job daily at 4:35 AM IST."""
+    if not config.AUTO_LEAVING_ASSISTANT:
+        logger.info("AUTO_LEAVING_ASSISTANT is disabled. Exiting auto_leave task.")
+        return
 
-            from DeadlineTech.core.userbot import assistants
+    logger.info("AutoLeave task started and running in background.")
+    from DeadlineTech.core.userbot import assistants
 
-            for num in assistants:
-                client = await get_client(num)
-                left = 0
-                try:
-                    async for dialog in client.get_dialogs():
-                        chat = dialog.chat
-                        if chat.type in [ChatType.SUPERGROUP, ChatType.GROUP, ChatType.CHANNEL]:
-                            if chat.id not in [config.LOGGER_ID, -1001686672798, -1001549206010]:
-                                if left >= 20:
-                                    break
-                                if not await is_active_chat(chat.id):
-                                    try:
-                                        await client.leave_chat(chat.id)
-                                        print(f"[AutoLeave] {client.me.first_name} left: {chat.title} ({chat.id})")
-                                        left += 1
-                                    except Exception as e:
-                                        print(f"[AutoLeave Error] Could not leave {chat.title} ({chat.id}): {e}")
-                except Exception as e:
-                    print(f"[AutoLeave Error] Assistant {num} failed to fetch dialogs: {e}")
+    while True:
+        seconds_to_sleep = seconds_until_target_time()
+        hrs, mins = divmod(seconds_to_sleep // 60, 60)
+        logger.info(f"Sleeping for {int(hrs)}h {int(mins)}m until 4:35 AM IST.")
+        await asyncio.sleep(seconds_to_sleep)
 
-# Start background task
+        logger.info("Running cleanup of inactive chats...")
+        for num in assistants:
+            client = await get_client(num)
+            await leave_inactive_chats(client, num)
+        logger.info("Cleanup complete. Sleeping again until next 4:35 AM.")
+
+# Start the background auto leave task
 asyncio.create_task(auto_leave())
