@@ -1,3 +1,9 @@
+# ==========================================================
+# 🔒 All Rights Reserved © Team DeadlineTech
+# 📁 This file is part of the DeadlineTech Project.
+# ==========================================================
+
+
 import asyncio
 import logging
 from datetime import datetime, timedelta
