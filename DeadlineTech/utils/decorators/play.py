@@ -1,4 +1,8 @@
-# Powered by Team DeadlineTech
+# ==========================================================
+# 🔒 All Rights Reserved © Team DeadlineTech
+# 📁 This file is part of the DeadlineTech Project.
+# ==========================================================
+
 
 import asyncio
 import logging
@@ -27,7 +31,7 @@ from DeadlineTech.utils.database import (
     is_maintenance,
 )
 from DeadlineTech.utils.inline import botplaylist_markup
-from config import PLAYLIST_IMG_URL, SUPPORT_CHAT, adminlist, OWNER_ID
+from config import PLAYLIST_IMG_URL, SUPPORT_CHAT, adminlist
 from strings import get_string
 
 logger = logging.getLogger(__name__)
@@ -37,7 +41,6 @@ logging.basicConfig(
 )
 
 links = {}
-
 
 def PlayWrapper(command):
     async def wrapper(client, message):
@@ -49,13 +52,13 @@ def PlayWrapper(command):
                 return await message.reply_text(
                     _["general_3"],
                     reply_markup=InlineKeyboardMarkup(
-                        [[InlineKeyboardButton(text="ʜᴏᴡ ᴛᴏ ғɪx ?", callback_data="AnonymousAdmin")]]
+                        [[InlineKeyboardButton(text="ʕᵒˡ ᴛʏ ꟾɪʏ ?", callback_data="AnonymousAdmin")]]
                     )
                 )
 
             if await is_maintenance() is False and message.from_user.id not in SUDOERS:
                 return await message.reply_text(
-                    f"{app.mention} ɪs ᴜɴᴅᴇʀ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ.\nPlease visit <a href={SUPPORT_CHAT}>support chat</a>.",
+                    f"{app.mention} ɪʃ ʏɴᴅᴇʀ ᴍɐɪɴᴛᴇɴᴀɴᴄᴇ.\nPlease visit <a href={SUPPORT_CHAT}>support chat</a>.",
                     disable_web_page_preview=True
                 )
 
@@ -105,6 +108,13 @@ def PlayWrapper(command):
             )
             fplay = True if message.command[0][-1] == "e" else None
 
+            try:
+                bot_member = await app.get_chat_member(chat_id, (await app.get_me()).id)
+                if bot_member.status != ChatMemberStatus.ADMINISTRATOR:
+                    return await message.reply_text("❌ Please promote the bot to admin to use music features.")
+            except Exception as e:
+                logger.warning(f"Couldn't check bot admin status: {e}")
+
             if not await is_active_chat(chat_id):
                 userbot = await get_assistant(chat_id)
                 try:
@@ -113,6 +123,8 @@ def PlayWrapper(command):
                         return await message.reply_text(
                             _["call_2"].format(app.mention, userbot.id, userbot.name, userbot.username)
                         )
+                except ChatAdminRequired:
+                    return await message.reply_text("❌ Bot must be admin to check assistant's membership status.")
                 except UserNotParticipant:
                     logger.info(f"Assistant not in chat: {chat_id}")
                     invite_link = links.get(chat_id)
@@ -149,32 +161,27 @@ def PlayWrapper(command):
                     except UserAlreadyParticipant:
                         pass
                     except ChannelsTooMuch:
-                        # Notify OWNER and all SUDOERS with assistant info
-                        chat_title = "this chat"
                         try:
-                            chat_info = await app.get_chat(chat_id)
-                            chat_title = chat_info.title or chat_title
+                            chat_title = (await app.get_chat(chat_id)).title
                         except Exception:
-                            pass
-                        notification_text = (
+                            chat_title = "this chat"
+                        note = (
                             f"<b>Too many joined groups/channels</b>\n\n"
                             f"<pre>⚠️ Assistant #{userbot.id} could not join: {chat_title} ({chat_id})</pre>\n\n"
-                            f"🧹 Action: Please run <code>/cleanassistants </code> to clean."
+                            f"🧹 <b>Action:</b> Please run <code>/cleanassistants</code> to clean."
                         )
                         for sudo_id in SUDOERS:
                             try:
-                                await app.send_message(sudo_id, notification_text)
+                                await app.send_message(sudo_id, note)
                             except Exception as e:
                                 logger.error(f"Notification error for {sudo_id}: {e}")
-                        return await message.reply_text(
-                            "» 𝖲𝗈𝗆𝖾𝗍𝗁𝗂𝗇𝗀 𝗐𝖾𝗇𝗍 𝗐𝗋𝗈𝗇𝗀 𝗐𝗁𝗂𝗅𝖾 𝗉𝗋𝗈𝖼𝖾𝗌𝗌𝗂𝗇𝗀 𝗒𝗈𝗎𝗋 𝗋𝖾𝗊𝗎𝖾𝗌𝗍.\n\n𝖤𝗑𝖼𝖾𝗉𝗍𝗂𝗈𝗇: <code>ChannelToMuch</code>"
-                        )
+                        return await message.reply_text("🚫 Assistant has joined too many chats.")
                     except ChatAdminRequired:
                         return await message.reply_text(_["call_1"])
                     except RPCError as e:
                         logger.error(f"RPCError: {traceback.format_exc()}")
                         return await message.reply_text(
-                            f"🚫 <b>RPC Error:</b>\n<pre>{type(e).__name__}</pre>"
+                            f"🚫 <b>RPC Error:</b> <code>{type(e).__name__}</code>"
                         )
 
             logger.info(
