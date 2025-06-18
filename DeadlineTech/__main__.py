@@ -88,7 +88,7 @@ async def init():
         pass
     await Anony.decorators()
     LOGGER("DeadlineTech").info(
-        "DeadlineTech Music Bot started successfully"
+        "DeadlineTech Music Bot started successfully and is now running."
     )
     await idle()
     await app.stop()
