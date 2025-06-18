@@ -170,3 +170,20 @@ def stream_markup2(_, chat_id):
         ],
     ]
     return buttons
+
+
+
+def telegram_markup(_, chat_id):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=_["PL_B_3"],
+                callback_data=f"PanelMarkup None|{chat_id}",
+            ),
+            InlineKeyboardButton(
+                text=_["CLOSEMENU_BUTTON"], callback_data="close"
+            ),
+        ],
+    ]
+    return buttons
+
