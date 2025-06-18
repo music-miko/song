@@ -20,7 +20,7 @@ from pytgcalls.types import (
     Update,
 )
 from pytgcalls.types.stream import StreamAudioEnded
-from DeadlineTech import config
+import config
 from DeadlineTech import LOGGER, YouTube, app
 from DeadlineTech.utils.formatters import seconds_to_min
 from DeadlineTech.misc import db
