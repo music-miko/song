@@ -1,4 +1,7 @@
-# Powered by Team DeadlineTech
+# ==========================================================
+# 🔒 All Rights Reserved © Team DeadlineTech
+# 📁 This file is part of the DeadlineTech Project.
+# ==========================================================
 
 import time
 import logging
