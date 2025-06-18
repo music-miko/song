@@ -666,3 +666,60 @@ async def remove_banned_user(user_id: int):
     if not is_gbanned:
         return
     return await blockeddb.delete_one({"user_id": user_id})
+
+
+# Audio Video Quality 
+
+from pytgcalls.types import AudioQuality, VideoQuality
+
+
+async def save_audio_bitrate(chat_id: int, bitrate: str):
+    audio[chat_id] = bitrate
+
+
+async def save_video_bitrate(chat_id: int, bitrate: str):
+    video[chat_id] = bitrate
+
+
+async def get_aud_bit_name(chat_id: int) -> str:
+    mode = audio.get(chat_id)
+    if not mode:
+        return "High"
+    return mode
+
+
+async def get_vid_bit_name(chat_id: int) -> str:
+    mode = video.get(chat_id)
+    if not mode:
+        if PRIVATE_BOT_MODE == str(True):
+            return "High"
+        else:
+            return "High"
+    return mode
+
+
+async def get_audio_bitrate(chat_id: int) -> str:
+    mode = audio.get(chat_id)
+    if not mode:
+        return AudioQuality.STUDIO
+    if str(mode) == "High":
+        return AudioQuality.STUDIO
+    elif str(mode) == "Medium":
+        return AudioQuality.STUDIO
+    elif str(mode) == "Low":
+        return AudioQuality.STUDIO
+
+
+async def get_video_bitrate(chat_id: int) -> str:
+    mode = video.get(chat_id)
+    if not mode:
+        if PRIVATE_BOT_MODE == str(True):
+            return VideoQuality.SD_480p
+        else:
+            return VideoQuality.SD_480p
+    if str(mode) == "High":
+        return VideoQuality.SD_480p
+    elif str(mode) == "Medium":
+        return VideoQuality.SD_480p
+    elif str(mode) == "Low":
+        return VideoQuality.SD_480p
