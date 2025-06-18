@@ -104,6 +104,7 @@ SPOTIFY_ARTIST_IMG_URL = "https://files.catbox.moe/1xn73k.jpg"
 SPOTIFY_ALBUM_IMG_URL = "https://files.catbox.moe/1xn73k.jpg"
 SPOTIFY_PLAYLIST_IMG_URL = "https://files.catbox.moe/1xn73k.jpg"
 
+PRIVATE_BOT_MODE = getenv("PRIVATE_BOT_MODE", False)
 
 def time_to_seconds(time):
     stringt = str(time)
