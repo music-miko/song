@@ -127,11 +127,9 @@ async def broadcast_command(client, message: Message):
                 BROADCAST_STATUS["failed"] += 1
             except RPCError:
                 BROADCAST_STATUS["failed"] += 1
-                logger.warning(f"RPCError on {chat_id}")
             except Exception as e:
                 BROADCAST_STATUS["failed"] += 1
-                logger.exception(f"Error delivering to {chat_id}: {e}")
-
+            
     BATCH_SIZE = 100
     for i in range(0, total, BATCH_SIZE):
         batch = targets[i:i + BATCH_SIZE]
