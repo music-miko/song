@@ -43,7 +43,7 @@ from DeadlineTech.utils.exceptions import AssistantErr
 from DeadlineTech.utils.inline.play import stream_markup, telegram_markup
 from DeadlineTech.utils.stream.autoclear import auto_clean
 from DeadlineTech.utils.thumbnails import get_thumb as gen_thumb
-from string import get_string
+from strings import get_string
 
 autoend = {}
 counter = {}
