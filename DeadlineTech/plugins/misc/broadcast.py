@@ -1,15 +1,9 @@
-# ==========================================================
-# 🔒 All Rights Reserved © Team DeadlineTech
-# 📁 This file is part of the DeadlineTech Project.
-# ==========================================================
-
 import time
 import logging
 import asyncio
 
 from pyrogram import filters
-from pyrogram.enums import ChatMembersFilter
-from pyrogram.errors import FloodWait, RPCError, MessageNotModified
+from pyrogram.errors import FloodWait, RPCError
 from pyrogram.types import Message
 
 from DeadlineTech import app
@@ -17,15 +11,11 @@ from DeadlineTech.misc import SUDOERS
 from DeadlineTech.utils.database import (
     get_active_chats,
     get_authuser_names,
-    get_client,
     get_served_chats,
     get_served_users,
 )
-from DeadlineTech.utils.decorators.language import language
-from DeadlineTech.utils.formatters import alpha_to_int
 from config import adminlist
 
-# Setup logger
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - [%(levelname)s] - %(message)s",
@@ -33,30 +23,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger("Broadcast")
 
-# Global broadcast status
-BROADCAST_STATUS = {
-    "active": False,
-    "sent": 0,
-    "failed": 0,
-    "total": 0,
-    "start_time": 0,
-    "users": 0,
-    "chats": 0,
-    "mode": "",
-    "sent_users": 0,
-    "sent_chats": 0,
-}
-
 SEMAPHORE = asyncio.Semaphore(10)
 
 @app.on_message(filters.command("broadcast") & SUDOERS)
 async def broadcast_command(client, message: Message):
-    global BROADCAST_STATUS
-
     command = message.text.lower()
     mode = "forward" if "-forward" in command else "copy"
 
-    # Determine recipients
     if "-all" in command:
         users = await get_served_users()
         chats = await get_served_chats()
@@ -68,8 +41,8 @@ async def broadcast_command(client, message: Message):
         target_chats = []
     elif "-chats" in command:
         chats = await get_served_chats()
-        target_chats = [c["chat_id"] for c in chats]
         target_users = []
+        target_chats = [c["chat_id"] for c in chats]
     else:
         return await message.reply_text("❗ Usage:\n/broadcast -all/-users/-chats [-forward]")
 
@@ -88,25 +61,22 @@ async def broadcast_command(client, message: Message):
             return await message.reply_text("📝 Provide a message or reply to one.")
         content = text
 
-    targets = target_users + target_chats
-    total = len(targets)
-    BROADCAST_STATUS.update({
-        "active": True,
-        "sent": 0,
-        "failed": 0,
-        "total": total,
-        "start_time": time.time(),
-        "users": len(target_users),
-        "chats": len(target_chats),
-        "mode": mode,
-        "sent_users": 0,
-        "sent_chats": 0,
-    })
+    total = len(target_users + target_chats)
+    sent_users = 0
+    sent_chats = 0
+    failed = 0
 
-    logger.info(f"Broadcast started: mode={mode}, users={len(target_users)}, chats={len(target_chats)}")
-    status_msg = await message.reply_text("📡 Broadcasting started...")
+    await message.reply_text(
+        f"📢 <b>Broadcast Started</b>\n\n"
+        f"➤ Mode: <code>{mode}</code>\n"
+        f"👤 Users: <code>{len(target_users)}</code>\n"
+        f"👥 Chats: <code>{len(target_chats)}</code>\n"
+        f"📦 Total: <code>{total}</code>\n"
+        f"⏳ Please wait while messages are being sent..."
+    )
 
-    async def deliver(chat_id, retries=2):
+    async def deliver(chat_id, is_user, retries=1):
+        nonlocal sent_users, sent_chats, failed
         async with SEMAPHORE:
             try:
                 if isinstance(content, str):
@@ -115,96 +85,50 @@ async def broadcast_command(client, message: Message):
                     await app.forward_messages(chat_id, message.chat.id, [content.id])
                 else:
                     await content.copy(chat_id)
-                BROADCAST_STATUS["sent"] += 1
-                if chat_id in target_users:
-                    BROADCAST_STATUS["sent_users"] += 1
+                if is_user:
+                    sent_users += 1
                 else:
-                    BROADCAST_STATUS["sent_chats"] += 1
+                    sent_chats += 1
             except FloodWait as e:
+                await asyncio.sleep(min(e.value, 60))
                 if retries > 0:
-                    await asyncio.sleep(min(e.value, 60))
-                    return await deliver(chat_id, retries - 1)
-                BROADCAST_STATUS["failed"] += 1
+                    return await deliver(chat_id, is_user, retries - 1)
+                failed += 1
             except RPCError:
-                BROADCAST_STATUS["failed"] += 1
-            except Exception as e:
-                BROADCAST_STATUS["failed"] += 1
-            
-    BATCH_SIZE = 100
-    for i in range(0, total, BATCH_SIZE):
-        batch = targets[i:i + BATCH_SIZE]
-        tasks = [deliver(chat_id) for chat_id in batch]
-        await asyncio.gather(*tasks, return_exceptions=True)
+                failed += 1
+            except Exception:
+                failed += 1
+
+    targets = [(uid, True) for uid in target_users] + [(cid, False) for cid in target_chats]
+    for i in range(0, len(targets), 100):
+        batch = targets[i:i + 100]
+        await asyncio.gather(*[deliver(chat_id, is_user) for chat_id, is_user in batch])
         await asyncio.sleep(1.5)
 
-        percent = round((BROADCAST_STATUS['sent'] + BROADCAST_STATUS['failed']) / total * 100, 2)
-        try:
-            await status_msg.edit_text(
-                f"📣 <b>Broadcast In Progress</b>\n"
-                f"✅ Sent: <code>{BROADCAST_STATUS['sent']}</code>\n"
-                f"❌ Failed: <code>{BROADCAST_STATUS['failed']}</code>\n"
-                f"📦 Total: <code>{total}</code>\n"
-                f"├ Users: <code>{BROADCAST_STATUS['users']}</code>\n"
-                f"└ Chats: <code>{BROADCAST_STATUS['chats']}</code>\n"
-                f"🔃 Progress: <code>{percent}%</code>"
-            )
-        except MessageNotModified:
-            pass
-
-    BROADCAST_STATUS["active"] = False
-    elapsed = round(time.time() - BROADCAST_STATUS["start_time"])
-    logger.info(f"Broadcast complete: {BROADCAST_STATUS['sent']} sent, {BROADCAST_STATUS['failed']} failed")
-
-    await status_msg.edit_text(
-        f"✅ <b>Broadcast Complete!</b>\n\n"
-        f"🔘 Mode: <code>{BROADCAST_STATUS['mode']}</code>\n"
-        f"📦 Total Targets: <code>{BROADCAST_STATUS['total']}</code>\n"
-        f"📬 Delivered: <code>{BROADCAST_STATUS['sent']}</code>\n"
-        f"├ Users: <code>{BROADCAST_STATUS['sent_users']}</code>\n"
-        f"└ Chats: <code>{BROADCAST_STATUS['sent_chats']}</code>\n"
-        f"❌ Failed: <code>{BROADCAST_STATUS['failed']}</code>\n"
-        f"⏰ Time Taken: <code>{elapsed}s</code>"
-    )
-
-@app.on_message(filters.command("status") & SUDOERS)
-async def broadcast_status(client, message):
-    if not BROADCAST_STATUS["active"]:
-        return await message.reply_text("📡 No active broadcast.")
-
-    elapsed = round(time.time() - BROADCAST_STATUS["start_time"])
-    sent = BROADCAST_STATUS["sent"]
-    failed = BROADCAST_STATUS["failed"]
-    total = BROADCAST_STATUS["total"]
-    percent = round((sent + failed) / total * 100, 2)
-
-    eta = (elapsed / max((sent + failed), 1)) * (total - (sent + failed))
-    eta_fmt = f"{int(eta // 60)}m {int(eta % 60)}s"
-
-    bar = f"[{'█' * int(percent // 5)}{'░' * (20 - int(percent // 5))}]"
-
     await message.reply_text(
-        f"📊 <b>Live Broadcast Status</b>\n\n"
-        f"{bar} <code>{percent}%</code>\n"
-        f"✅ Sent: <code>{sent}</code>\n"
-        f"❌ Failed: <code>{failed}</code>\n"
-        f"📦 Total: <code>{total}</code>\n"
-        f"⏱ ETA: <code>{eta_fmt}</code>\n"
-        f"🕒 Elapsed: <code>{elapsed}s</code>"
+        f"✅ <b>Broadcast Completed</b>\n\n"
+        f"➤ Mode: <code>{mode}</code>\n"
+        f"👤 Users Sent: <code>{sent_users}</code>\n"
+        f"👥 Chats Sent: <code>{sent_chats}</code>\n"
+        f"📦 Total Delivered: <code>{sent_users + sent_chats}</code>\n"
+        f"❌ Failed: <code>{failed}</code>"
     )
 
+# Optional Admin Refresher
 async def auto_clean():
-    while not await asyncio.sleep(10):
+    while True:
+        await asyncio.sleep(10)
         try:
-            served_chats = await get_active_chats()
-            for chat_id in served_chats:
+            chats = await get_active_chats()
+            for chat_id in chats:
                 if chat_id not in adminlist:
                     adminlist[chat_id] = []
-                    async for user in app.get_chat_members(chat_id, filter=ChatMembersFilter.ADMINISTRATORS):
+                    async for user in app.get_chat_members(chat_id, filter="administrators"):
                         if user.privileges.can_manage_video_chats:
                             adminlist[chat_id].append(user.user.id)
                     authusers = await get_authuser_names(chat_id)
-                    for user in authusers:
-                        user_id = await alpha_to_int(user)
+                    for username in authusers:
+                        user_id = await alpha_to_int(username)
                         adminlist[chat_id].append(user_id)
         except Exception as e:
             logger.warning(f"AutoClean error: {e}")
