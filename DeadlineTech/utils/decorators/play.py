@@ -57,7 +57,7 @@ if not await is_maintenance() and message.from_user.id not in SUDOERS:
                 disable_web_page_preview=True
             )
 
-        try:
+try:
             await message.delete()
         except Exception as e:
             logger.warning(f"Message delete failed: {e}")
