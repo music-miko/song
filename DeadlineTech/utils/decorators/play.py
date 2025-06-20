@@ -51,7 +51,7 @@ if message.sender_chat:
                 )
             )
 
-        if not await is_maintenance() and message.from_user.id not in SUDOERS:
+if not await is_maintenance() and message.from_user.id not in SUDOERS:
             return await message.reply_text(
                 f"{app.mention} ɪʃ ʏɴᴅɐ ʍᴅɹ ʍɐɪɴʎɛɴɐɴɢɛ.\nPlease visit <a href={SUPPORT_CHAT}>support chat</a>.",
                 disable_web_page_preview=True
