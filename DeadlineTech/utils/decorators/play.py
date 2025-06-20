@@ -1,6 +1,6 @@
 ==========================================================
 
- All Rights Reserved © Team DeadlineTech
+ All Rights Reserved Team DeadlineTech
 
  This file is part of the DeadlineTech Project.
 
