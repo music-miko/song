@@ -35,8 +35,14 @@ format='[%(asctime)s] [%(levelname)s] - %(message)s', )
 
 links = {}
 
-def PlayWrapper(command): async def wrapper(client, message): try: language = await get_lang(message.chat.id) _ = get_string(language)
-
+def PlayWrapper(command):
+    async def wrapper(client, message):
+        try:
+            language = await get_lang(message.chat.id)
+            _ = get_string(language)
+        except Exception as e:
+            logger.warning(f"Language fallback: {e}")
+            _ = get_string("en")  # fallback to English
 if message.sender_chat:
             return await message.reply_text(
                 _["general_3"],
