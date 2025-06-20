@@ -3,7 +3,7 @@ import logging
 import asyncio
 
 from pyrogram import filters
-from pyrogram.enums import ChatMembersFilter
+from pyrogram.enums import ChatMembersFilter, ChatMembersFilter
 from pyrogram.errors import FloodWait, RPCError
 from pyrogram.types import Message
 
@@ -117,7 +117,7 @@ async def broadcast_command(client, message: Message):
         f"❌ Failed: <code>{failed}</code>"
     )
 
-# Optional Admin Refresher
+
 async def auto_clean():
     while True:
         await asyncio.sleep(10)
@@ -126,14 +126,19 @@ async def auto_clean():
             for chat_id in chats:
                 if chat_id not in adminlist:
                     adminlist[chat_id] = []
-                    async for user in app.get_chat_members(chat_id, filter="administrators"):
-                        if user.privileges.can_manage_video_chats:
-                            adminlist[chat_id].append(user.user.id)
-                    authusers = await get_authuser_names(chat_id)
-                    for username in authusers:
-                        user_id = await alpha_to_int(username)
-                        adminlist[chat_id].append(user_id)
+
+                # use the proper enum here 👇
+                async for member in app.get_chat_members(
+                    chat_id, filter=ChatMembersFilter.ADMINISTRATORS
+                ):
+                    # some admins may not have .privileges (older Telegram versions)
+                    if getattr(member, "privileges", None) and member.privileges.can_manage_video_chats:
+                        adminlist[chat_id].append(member.user.id)
+
+                # add authorised helper‑users
+                for username in await get_authuser_names(chat_id):
+                    user_id = await alpha_to_int(username)
+                    adminlist[chat_id].append(user_id)
+
         except Exception as e:
             logger.warning(f"AutoClean error: {e}")
-
-asyncio.create_task(auto_clean())
