@@ -1,11 +1,3 @@
-==========================================================
-
- All Rights Reserved Team DeadlineTech
-
- This file is part of the DeadlineTech Project.
-
-==========================================================
-
 import asyncio import logging import traceback
 
 from pyrogram.enums import ChatMemberStatus from pyrogram.errors import ( ChatAdminRequired, InviteRequestSent, UserAlreadyParticipant, UserNotParticipant, ChannelsTooMuch, RPCError, ) from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
