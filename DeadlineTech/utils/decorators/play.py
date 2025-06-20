@@ -2,13 +2,36 @@ import asyncio
 import logging
 import traceback
 
-from pyrogram.enums import ChatMemberStatus from pyrogram.errors import ( ChatAdminRequired, InviteRequestSent, UserAlreadyParticipant, UserNotParticipant, ChannelsTooMuch, RPCError, ) from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.enums import ChatMemberStatus
+from pyrogram.errors import (
+ChatAdminRequired,
+InviteRequestSent,
+UserAlreadyParticipant,
+UserNotParticipant,
+ChannelsTooMuch,
+RPCError,
+)
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from DeadlineTech import YouTube, app
-from DeadlineTech.misc import SUDOERS from DeadlineTech.utils.database import ( get_assistant, get_cmode, get_lang, get_playmode, get_playtype, is_active_chat, is_maintenance, )
-from DeadlineTech.utils.inline import botplaylist_markup from config import PLAYLIST_IMG_URL, SUPPORT_CHAT, adminlist from strings import get_string
+from DeadlineTech.misc import SUDOERS
+from DeadlineTech.utils.database import (
+get_assistant,
+get_cmode,
+get_lang,
+get_playmode, 
+get_playtype,
+is_active_chat,
+is_maintenance,
+)
+from DeadlineTech.utils.inline import botplaylist_markup
+from config import PLAYLIST_IMG_URL, SUPPORT_CHAT, adminlist
+from strings import get_string
 
-logger = logging.getLogger(name) logging.basicConfig( level=logging.INFO, format='[%(asctime)s] [%(levelname)s] - %(message)s', )
+logger = logging.getLogger(name)
+logging.basicConfig(
+level=logging.INFO,
+format='[%(asctime)s] [%(levelname)s] - %(message)s', )
 
 links = {}
 
@@ -18,13 +41,13 @@ if message.sender_chat:
             return await message.reply_text(
                 _["general_3"],
                 reply_markup=InlineKeyboardMarkup(
-                    [[InlineKeyboardButton(text="ʕᵒˉ ᴛʏ ⷾɪʟ ?", callback_data="AnonymousAdmin")]]
+                    [[InlineKeyboardButton(text="ʕᵒˡ ᴜя ⸿ɪʟ ?", callback_data="AnonymousAdmin")]]
                 )
             )
 
         if await is_maintenance() is False and message.from_user.id not in SUDOERS:
             return await message.reply_text(
-                f"{app.mention} ʕʃ ʏɱᴇᴀ ʍɐɩɴɾᴇɴɐɳɪʎᴇ.\nPlease visit <a href={SUPPORT_CHAT}>support chat</a>.",
+                f"{app.mention} ɪʃ ʏɴᴅɐ ʍᴅɹ ʍɐɪɴʎɛɴɐɴɢɛ.\nPlease visit <a href={SUPPORT_CHAT}>support chat</a>.",
                 disable_web_page_preview=True
             )
 
@@ -89,13 +112,8 @@ if message.sender_chat:
                     return await message.reply_text(
                         _["call_2"].format(app.mention, userbot.id, userbot.name, userbot.username)
                     )
-            except (ChatAdminRequired, UserNotParticipant, RPCError) as e:
-                logger.warning(f"Assistant check skipped: {e}")
-                member = None
-            except Exception as e:
-                logger.error(f"Unexpected error in assistant check: {e}")
-
-            if not member:
+            except UserNotParticipant:
+                logger.info(f"Assistant not in chat: {chat_id}")
                 invite_link = links.get(chat_id)
                 if not invite_link:
                     if message.chat.username:
@@ -103,12 +121,11 @@ if message.sender_chat:
                     else:
                         try:
                             invite_link = await app.export_chat_invite_link(chat_id)
-                        except ChatAdminRequired:
-                            return await message.reply_text(_["call_1"])
                         except Exception as e:
                             logger.error(f"export_chat_invite_link error: {e}")
-                            return await message.reply_text(_["call_3"].format(app.mention, type(e).__name__))
-
+                            return await message.reply_text(
+                                _["call_3"].format(app.mention, type(e).__name__)
+                            )
                 if invite_link.startswith("https://t.me/+"):
                     invite_link = invite_link.replace("https://t.me/+", "https://t.me/joinchat/")
 
@@ -116,39 +133,11 @@ if message.sender_chat:
                 msg = await message.reply_text(_["call_4"].format(app.mention))
                 try:
                     await userbot.join_chat(invite_link)
-                except InviteRequestSent:
-                    try:
-                        await app.approve_chat_join_request(chat_id, userbot.id)
-                    except Exception as e:
-                        logger.error(f"Join request approve failed: {e}")
-                        return await message.reply_text(_["call_3"].format(app.mention, type(e).__name__))
                     await asyncio.sleep(3)
                     await msg.edit(_["call_5"].format(app.mention))
-                except UserAlreadyParticipant:
-                    pass
-                except ChannelsTooMuch:
-                    try:
-                        chat_title = (await app.get_chat(chat_id)).title
-                    except Exception:
-                        chat_title = "this chat"
-                    note = (
-                        f"<b>Too many joined groups/channels</b>\n\n"
-                        f"<pre>⚠️ Assistant #{userbot.id} could not join: {chat_title} ({chat_id})</pre>\n\n"
-                        f"🧹 <b>Action:</b> Please run <code>/cleanassistants</code> to clean."
-                    )
-                    for sudo_id in SUDOERS:
-                        try:
-                            await app.send_message(sudo_id, note)
-                        except Exception as e:
-                            logger.error(f"Notification error for {sudo_id}: {e}")
-                    return await message.reply_text("🚫 Assistant has joined too many chats.")
-                except ChatAdminRequired:
-                    return await message.reply_text(_["call_1"])
-                except RPCError as e:
-                    logger.error(f"RPCError: {traceback.format_exc()}")
-                    return await message.reply_text(
-                        f"🚫 <b>RPC Error:</b> <code>{type(e).__name__}</code>"
-                    )
+                except Exception as e:
+                    logger.error(f"Assistant join failed: {e}")
+                    return await message.reply_text(_["call_3"].format(app.mention, type(e).__name__))
 
         logger.info(
             f"▶️ A Song is played by {message.from_user.id} in {chat_id}"
@@ -177,3 +166,4 @@ if message.sender_chat:
             pass
 
 return wrapper
+
