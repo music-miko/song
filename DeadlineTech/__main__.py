@@ -79,7 +79,7 @@ async def start_bot():
     ])
 
     for mod in ALL_MODULES:
-        importlib.import_module(f"DeadlineTech.plugins.{mod}")
+        importlib.import_module(f"DeadlineTech.plugins" + mod)
     LOG.info("✅ All plugins loaded.")
 
     await userbot.start()
