@@ -1,13 +1,13 @@
-# Powered By Team DeadlineTech ✨
-import os
-import sys
-import time
+# ==========================================================
+# 🔒 All Rights Reserved © Team DeadlineTech
+# 📁 This file is part of the DeadlineTech Project.
+# ==========================================================
+
 import asyncio
 import importlib
-import logging
 
-from pyrogram import idle
 from pyrogram.types import BotCommand
+from pyrogram import idle
 from pytgcalls.exceptions import NoActiveGroupCall
 
 import config
@@ -16,35 +16,33 @@ from DeadlineTech.core.call import Anony
 from DeadlineTech.misc import sudo
 from DeadlineTech.plugins import ALL_MODULES
 from DeadlineTech.utils.database import get_banned_users, get_gbanned
-from DeadlineTech.utils.crash_reporter import setup_global_exception_handler
+from DeadlineTech.utils.crash_reporter import setup_global_exception_handler  # ✅ Import crash handler
 from config import BANNED_USERS
 
-OWNER_ID = 7321657753  # user to alert on failure
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - [%(levelname)s] - %(name)s: %(message)s",
-    datefmt="%d-%b-%y %H:%M:%S",
-)
-LOG = logging.getLogger("DeadlineTechMain")
-
-async def start_bot():
+async def init():
+    # ✅ Enable global crash handler
     setup_global_exception_handler()
 
-    if not any([config.STRING1, config.STRING2, config.STRING3, config.STRING4, config.STRING5]):
-        LOG.error("Assistant client variables not set! Exiting.")
-        return
-
+  
+    if (
+        not config.STRING1
+        and not config.STRING2
+        and not config.STRING3
+        and not config.STRING4
+        and not config.STRING5
+    ):
+        LOGGER(__name__).error("Assistant client variables not defined, exiting...")
+        exit()
     await sudo()
-
     try:
-        for uid in await get_gbanned():
-            BANNED_USERS.add(uid)
-        for uid in await get_banned_users():
-            BANNED_USERS.add(uid)
-    except Exception as e:
-        LOG.warning(f"Failed to fetch banned users: {e}")
-
+        users = await get_gbanned()
+        for user_id in users:
+            BANNED_USERS.add(user_id)
+        users = await get_banned_users()
+        for user_id in users:
+            BANNED_USERS.add(user_id)
+    except:
+        pass
     await app.start()
 
     await app.set_bot_commands([
@@ -76,63 +74,30 @@ async def start_bot():
         BotCommand("stats", "check statistics of the Bot")
     ])
 
+    
     for all_module in ALL_MODULES:
         importlib.import_module("DeadlineTech.plugins" + all_module)
-    LOGGER("DeadlineTech.plugins").info("Successfully Imported Modules...")
-
+    LOGGER("DeadlineTech.plugins").info("✅ All required modules imported. Starting DeadlineTech Bot initialization...")
     await userbot.start()
     await Anony.start()
-
     try:
         await Anony.stream_call("https://te.legra.ph/file/29f784eb49d230ab62e9e.mp4")
     except NoActiveGroupCall:
-        LOG.error("Start a video chat in your log group!")
-        return
-    except Exception:
+        LOGGER("DeadlineTech").error(
+            "Please turn on the videochat of your log group\channel.\n\nStopping Bot..."
+        )
+        exit()
+    except:
         pass
-
     await Anony.decorators()
-
-    LOG.info("✅ DeadlineTech Music Bot started.")
+    LOGGER("DeadlineTech").info(
+        "DeadlineTech Music Bot started successfully and is now running."
+    )
     await idle()
-
     await app.stop()
     await userbot.stop()
-    await Anony.stop()
-    LOG.info("🛑 Bot stopped gracefully.")
+    LOGGER("DeadlineTech").info("Stopping DeadlineTech Music Bot...")
 
-async def notify_shutdown():
-    try:
-        await app.send_message(
-            chat_id=OWNER_ID,
-            text="⚠️ Bot has crashed and failed to restart.\n\nShutting down the bot for safety."
-        )
-    except Exception as e:
-        LOG.warning(f"Could not notify owner: {e}")
-
-async def runner():
-    retries = 1
-    for attempt in range(1 + retries):
-        try:
-            await start_bot()
-            return
-        except Exception as e:
-            LOG.exception(f"❌ Crash on attempt {attempt + 1}: {e}")
-            if attempt < retries:
-                LOG.info("⏳ Retrying in 3 seconds...")
-                await asyncio.sleep(3)
-            else:
-                LOG.info("❗ Final attempt failed. Notifying owner and shutting down...")
-                try:
-                    await app.start()
-                    await notify_shutdown()
-                    await app.stop()
-                except:
-                    pass
-                sys.exit(1)
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(runner())
-    except KeyboardInterrupt:
-        LOG.info("👋 Bot stopped by user.")
+    asyncio.get_event_loop().run_until_complete(init())
