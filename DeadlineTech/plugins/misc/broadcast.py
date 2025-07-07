@@ -117,12 +117,10 @@ async def broadcast_command(client, message: Message):
                         return await deliver(chat_id, is_user, retries - 1)
                     failed += 1
 
-                except RPCError as e:
-                    logger.warning(f"RPCError in {chat_id}: {e}")
+                except RPCError:
                     failed += 1
 
-                except Exception as e:
-                    logger.exception(f"Unexpected error in {chat_id}: {e}")
+                except Exception:
                     failed += 1
 
         # Combine all targets
