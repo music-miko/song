@@ -55,7 +55,7 @@ async def download_song(link: str):
                             raise Exception("API response did not provide a download URL.")
                         break
                     elif status == "downloading":
-                        await asyncio.sleep(0.6)  # slightly faster polling
+                        await asyncio.sleep(5)  # slightly faster polling
                     else:
                         error_msg = data.get("error") or data.get("message") or f"Unexpected status '{status}'"
                         raise Exception(f"API error: {error_msg}")
