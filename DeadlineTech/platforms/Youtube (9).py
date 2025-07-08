@@ -16,7 +16,7 @@ from youtubesearchpython.__future__ import VideosSearch
 from ..utils.database import is_on_off
 from ..utils.formatters import time_to_seconds
 
-from config import API_URL, API_KEY
+from config import API_BASE_URL, API_KEY
     
 
 def cookie_txt_file():
