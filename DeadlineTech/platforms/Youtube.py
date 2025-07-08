@@ -39,7 +39,7 @@ async def download_song(link: str):
             config.downloadedApi += 1
             return file_path
 
-    song_url = f"{API_bASE_URL}/song/{video_id}?key={API_KEY}"
+    song_url = f"{API_BASE_URL}/song/{video_id}?key={API_KEY}"
     async with aiohttp.ClientSession() as session:
         for attempt in range(40):
             try:
