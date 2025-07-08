@@ -45,7 +45,7 @@ import logging
 import requests
 import time
 
-from config import API_BASE_URL
+from config import API_URL
 
 MIN_FILE_SIZE = 51200
 
