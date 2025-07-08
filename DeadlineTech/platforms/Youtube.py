@@ -67,7 +67,7 @@ def extract_video_id(link: str) -> str:
 
 
 def api_dl(video_id: str) -> str | None:
-    api_url = f"{API_BASE_URL}/download/song/{video_id}?key={API_KEY}"
+    api_url = f"{API_BASE_URL}/download/song/{video_id}"
     file_path = os.path.join("downloads", f"{video_id}.mp3")
 
     # ✅ Check if already downloaded
