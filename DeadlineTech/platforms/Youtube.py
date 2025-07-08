@@ -16,7 +16,7 @@ from youtubesearchpython.__future__ import VideosSearch
 from DeadlineTech.utils.database import is_on_off
 from DeadlineTech.utils.formatters import time_to_seconds
 
-from config import API_BASE_URL, API_KEY
+from config import API_URL, API_KEY
     
 
 def cookie_txt_file():
@@ -39,7 +39,7 @@ async def download_song(link: str):
             config.downloadedApi += 1
             return file_path
 
-    song_url = f"{API_BASE_URL}/song/{video_id}?key={API_KEY}"
+    song_url = f"{API_URL}/song/{video_id}?key={API_KEY}"
     async with aiohttp.ClientSession() as session:
         for attempt in range(40):
             try:
