@@ -14,9 +14,9 @@ from typing import Union
 from aiocache import cached, Cache
 from pyrogram.types import Message
 from pyrogram.enums import MessageEntityType
-from AviaxMusic.utils.database import is_on_off
+from DeadlineTech.utils.database import is_on_off
 from youtubesearchpython.__future__ import VideosSearch
-from AviaxMusic.utils.formatters import time_to_seconds
+from DeadlineTech.utils.formatters import time_to_seconds
 
 logging.basicConfig(
     level=logging.INFO,
