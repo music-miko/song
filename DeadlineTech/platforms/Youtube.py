@@ -6,18 +6,20 @@ import glob
 import random
 import logging
 import aiohttp
+import aiofiles
 import config
-from typing import Union
 import requests
 import yt_dlp
-from pyrogram.enums import MessageEntityType
+from typing import Union
+from aiocache import cached, Cache
 from pyrogram.types import Message
-from youtubesearchpython.__future__ import VideosSearch
+from config import API_URL, API_KEY
+from pyrogram.enums import MessageEntityType
 from DeadlineTech.utils.database import is_on_off
+from youtubesearchpython.__future__ import VideosSearch
 from DeadlineTech.utils.formatters import time_to_seconds
 
-from config import API_URL, API_KEY
-    
+MIN_FILE_SIZE_BYTES = 10 * 1024  # 0.01 MB = 10 KB
 
 def cookie_txt_file():
     cookie_dir = f"{os.getcwd()}/cookies"
@@ -27,69 +29,169 @@ def cookie_txt_file():
     return cookie_file
 
 
-async def download_song(link: str):
-    config.RequestApi += 1
-    video_id = link.split('v=')[-1].split('&')[0]
+@cached(ttl=60000, cache=Cache.MEMORY)  # Cache for 1000 minutes (60000 seconds)
+async def check_local_file(video_id: str):
     download_folder = "downloads"
-    os.makedirs(download_folder, exist_ok=True)
-
     for ext in ["mp3", "m4a", "webm", "opus"]:
         file_path = os.path.join(download_folder, f"{video_id}.{ext}")
-        if os.path.exists(file_path):
-            config.downloadedApi += 1
+        if os.path.exists(file_path):  # lightweight sync check, usually okay
             return file_path
+    return None
 
+async def download_file_with_cleanup(session, download_url, final_path):
+    temp_path = final_path + ".part"
+    try:
+        async with session.get(download_url) as file_response:
+            if file_response.status != 200:
+                print(f"Failed to start download, status: {file_response.status}")
+                return None
+
+            async with aiofiles.open(temp_path, 'wb') as f:
+                while True:
+                    chunk = await file_response.content.read(8192)
+                    if not chunk:
+                        break
+                    await f.write(chunk)
+
+        size = os.path.getsize(temp_path)
+        if size < MIN_FILE_SIZE_BYTES:
+            print(f"File too small ({size} bytes), deleting partial file")
+            await aiofiles.os.remove(temp_path)
+            return None
+
+        os.rename(temp_path, final_path)
+        return final_path
+
+    except Exception as e:
+        print(f"Error during download or save: {e}")
+        # Cleanup partial file if exists
+        if await aiofiles.os.path.exists(temp_path):
+            await aiofiles.os.remove(temp_path)
+        return None
+
+
+BackupUrlDomain = "http://188.166.81.138:5000"
+
+async def check_external_sourceytbackup(video_id: str, key: str) -> str | None:
+    ext_url = f"{BackupUrlDomain}/backupyt/{video_id}?key={key}"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(ext_url, timeout=4) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    if data.get("status") == "done" and data.get("download_url"):
+                        return data["download_url"]
+    except Exception as e:
+        print(f"[INFO] External check failed for {video_id}: {e}")
+    return None
+
+async def check_external_backups(video_id: str, key: str) -> str | None:
+    ext_url = f"{API_URL}/backupyt/{video_id}?key={key}"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(ext_url, timeout=4) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    if data.get("status") == "done" and data.get("download_url"):
+                        return data["download_url"]
+    except Exception as e:
+        print(f"[INFO] External check failed for {video_id}: {e}")
+    return None
+
+async def download_song(link: str):
+    video_id = link.split('v=')[-1].split('&')[0]
+
+    # Optionally start backup in background
+    asyncio.create_task(check_external_sourceytbackup(video_id, config.API_KEY))
+
+    config.RequestApi += 1
+
+    # Check if file already exists
+    file_path = await check_local_file(video_id)
+    if file_path:
+        config.downloadedApi += 1
+        return file_path
+
+    # Call your external API
     song_url = f"{API_URL}/song/{video_id}?key={API_KEY}"
+    download_url = None
+    file_format = "webm"  # Default
+
     async with aiohttp.ClientSession() as session:
-        for attempt in range(8):
+        for attempt in range(7):
             try:
                 async with session.get(song_url) as response:
+                    try:
+                        data = await response.json()
+                    except Exception:
+                        text = await response.text()
+                        print(f"⚠️ Failed to parse JSON: {text}")
+                        return None
+
+                    if response.status == 429:
+                        print(f"❌ API rate limit hit: {data.get('error', 'Too Many Requests')}")
+                        return None
+
+                    if response.status == 401:
+                        print(f"❌ API auth failed: {data.get('error', 'Unauthorized')}")
+                        return None
+
                     if response.status != 200:
-                        raise Exception(f"API request failed with status code {response.status}")
-                    data = await response.json()
+                        return None
+
                     status = data.get("status", "").lower()
 
                     if status == "done":
                         download_url = data.get("download_url")
+                        file_format = data.get("format", "webm")
                         if not download_url:
-                            raise Exception("API response did not provide a download URL.")
-                        break
+                            print("❌ API did not provide download_url")
+                            return None
+                        config.downloadedApi += 1
+                        break  # Exit retry loop
+
                     elif status == "downloading":
-                        await asyncio.sleep(5)  # slightly faster polling
+                        await asyncio.sleep(4)
+
+                    elif status == "failed":
+                        print("❌ API status is 'failed'. Skipping.")
+                        return None
+
                     else:
-                        error_msg = data.get("error") or data.get("message") or f"Unexpected status '{status}'"
-                        raise Exception(f"API error: {error_msg}")
+                        err_msg = data.get("error") or data.get("message") or f"Unexpected status: {status}"
+                        print(f"⚠️ {err_msg}")
+                        return None
+
             except Exception as e:
                 print(f"[FAIL] {e}")
                 return None
         else:
+            # All retries failed, use backups
             config.failedApiLinkExtract += 1
-            print("⏱️ Max retries reached. Still downloading...")
-            return None
+            print("⏱️ Max retries reached while polling API.")
 
-        try:
-            file_format = data.get("format", "mp3")
-            file_extension = file_format.lower()
-            file_path = os.path.join(download_folder, f"{video_id}.{file_extension}")
+            download_url = await check_external_sourceytbackup(video_id, config.API_KEY)
 
-            async with session.get(download_url) as file_response:
-                with open(file_path, 'wb') as f:
-                    while True:
-                        chunk = await file_response.content.read(8192)
-                        if not chunk:
-                            break
-                        f.write(chunk)
+            if not download_url:
+                print("⚠️ First backup failed, trying second...")
+                download_url = await check_external_backups(video_id, config.API_KEY)
 
+            if download_url:
                 config.downloadedApi += 1
-                return file_path
-        except aiohttp.ClientError as e:
+                print("✅ Download link generated from backup")
+            else:
+                print("❌ All backup sources failed.")
+                return None
+
+        # Continue to download the file
+        file_path = os.path.join("downloads", f"{video_id}.{file_format}")
+        file_path_result = await download_file_with_cleanup(session, download_url, file_path)
+
+        if file_path_result is None:
             config.failedApi += 1
-            print(f"Network error occurred while downloading: {e}")
             return None
-        except Exception as e:
-            config.failedApi += 1
-            print(f"Error while saving file: {e}")
-            return None
+
+        return file_path_result
 
 
 async def check_file_size(link):
@@ -157,6 +259,19 @@ class YouTubeAPI:
             return True
         else:
             return False
+    
+    # Helper method to extract YouTube video ID from URL
+    def extract_video_id(self, url: str) -> Union[str, None]:
+        patterns = [
+            re.compile(r'youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=)([0-9A-Za-z_-]{11})'),
+            re.compile(r'youtu\.be\/([0-9A-Za-z_-]{11})'),
+            re.compile(r'youtube\.com\/(?:.*\/)?([0-9A-Za-z_-]{11})')
+        ]
+        for pattern in patterns:
+            match = pattern.search(url)
+            if match:
+                return match.group(1)
+        return None
 
     async def url(self, message_1: Message) -> Union[str, None]:
         messages = [message_1]
@@ -180,7 +295,14 @@ class YouTubeAPI:
                         return entity.url
         if offset in (None,):
             return None
-        return text[offset : offset + length]
+        result_url = text[offset : offset + length]
+
+        # --- START: Standardize YouTube video URL if detected ---
+        video_id = self.extract_video_id(result_url)
+        if video_id:
+            return f"https://www.youtube.com/watch?v={video_id}"
+        # --- END: Standardize YouTube video URL if detected ---
+        return result_url
 
     async def details(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -358,6 +480,7 @@ class YouTubeAPI:
         loop = asyncio.get_running_loop()
         
         def audio_dl():
+            config.ReqYt += 1
             ydl_optssx = {
                 "format": "bestaudio/best",
                 "outtmpl": "downloads/%(id)s.%(ext)s",
@@ -368,7 +491,6 @@ class YouTubeAPI:
                 "no_warnings": True,
             }
             x = yt_dlp.YoutubeDL(ydl_optssx)
-            config.ReqYt += 1
             try:
                 info = x.extract_info(link, False)
                 xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
@@ -441,30 +563,50 @@ class YouTubeAPI:
 
         try:
             if songvideo:
+                config.songvideo_requests += 1
                 try:
                     fpath = await download_song(link)
+                    if fpath is None:
+                        print("download_song song_video download returned None, falling back")
+                        await loop.run_in_executor(None, song_video_dl)  # Changed from self.loop to loop
+                        fpath = f"downloads/{title}.mp4"
+                    config.songvideo_success += 1
                 except Exception as e:
-                    print(f"Async song video download failed: {e}")
-                    await self.loop.run_in_executor(None, song_video_dl)
+                    print("download_song song_video download returned None, falling back")
+                    await loop.run_in_executor(None, song_video_dl)  # Changed from self.loop to loop
                     fpath = f"downloads/{title}.mp4"
-                return fpath, direct
+                    config.songvideo_failed += 1
+                return fpath, True
 
             elif songaudio:
+                config.songaudio_requests += 1
                 try:
                     fpath = await download_song(link)
+                    if fpath is None:
+                        print("download_song song_audio download returned None, falling back")
+                        await loop.run_in_executor(None, song_audio_dl)  # Changed from self.loop to loop
+                        fpath = f"downloads/{title}.mp3"
+                    config.songaudio_success += 1
                 except Exception as e:
-                    print(f"Async song audio download failed: {e}")
-                    await self.loop.run_in_executor(None, song_audio_dl)
+                    print("download_song song_audio download returned None, falling back")
+                    await loop.run_in_executor(None, song_audio_dl)  # Changed from self.loop to loop
                     fpath = f"downloads/{title}.mp3"
-                return fpath, direct
+                    config.songaudio_failed += 1
+                return fpath, True
 
             elif video:
+                config.video_requests += 1
                 if await is_on_off(1):
                     try:
                         downloaded_file = await download_song(link)
+                        if downloaded_file is None:
+                            print("download_song video download returned None, falling back")
+                            downloaded_file = await loop.run_in_executor(None, video_dl)  # Changed from self.loop to loop
+                        config.video_success += 1
                     except Exception as e:
                         print(f"Async video download failed, trying fallback: {e}")
-                        downloaded_file = await self.loop.run_in_executor(None, video_dl)
+                        downloaded_file = await loop.run_in_executor(None, video_dl)  # Changed from self.loop to loop
+                        config.video_failed += 1
                     direct = True
                 else:
                     try:
@@ -481,6 +623,7 @@ class YouTubeAPI:
                         if stdout:
                             downloaded_file = stdout.decode().split("\n")[0]
                             direct = False
+                            config.video_success += 1
                         else:
                             raise Exception("yt-dlp direct URL fetch failed")
                     except Exception as e:
@@ -488,25 +631,35 @@ class YouTubeAPI:
                         file_size = await check_file_size(link)
                         if not file_size:
                             print("None file size")
+                            config.video_failed += 1
                             return None, True
                         total_size_mb = file_size / (1024 * 1024)
                         if total_size_mb > 250:
                             print(f"File size {total_size_mb:.2f} MB exceeds the 250MB limit.")
+                            config.video_failed += 1
                             return None, True
                         direct = True
-                        downloaded_file = await self.loop.run_in_executor(None, video_dl)
+                        downloaded_file = await loop.run_in_executor(None, video_dl)  # Changed from self.loop to loop
                 return downloaded_file, direct
 
             else:
+                config.audio_requests += 1
                 try:
                     downloaded_file = await download_song(link)
+                    if downloaded_file is None:
+                        print("download_song audio download returned None, falling back")
+                        downloaded_file = await loop.run_in_executor(None, audio_dl)  # Changed from self.loop to loop
+                        if download_file:
+                            config.audio_success += 1
                 except Exception as e:
-                    print(f"Async audio download failed: {e}")
-                    downloaded_file = await self.loop.run_in_executor(None, audio_dl)
+                    print("download_song audio download returned None, falling back")
+                    downloaded_file = await loop.run_in_executor(None, audio_dl)  # Changed from self.loop to loop
+                    if downloaded_file:
+                        config.audio_success += 1
+                    config.audio_failed += 1
                 direct = True
                 return downloaded_file, direct
 
         except Exception as e:
             print(f"Unhandled error during download: {e}")
             return None, True
-
