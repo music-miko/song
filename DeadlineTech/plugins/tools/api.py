@@ -36,7 +36,7 @@ def get_stats_message_html():
 
 
 # Pyrogram command handler for /stats
-@Client.on_message(filters.command("yt") & SUDOERS)
+@app.on_message(filters.command("yt") & SUDOERS)
 async def stats_handler(client: Client, message: Message):
     html = get_stats_message_html()
     await message.reply_text(html)
