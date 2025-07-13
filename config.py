@@ -86,14 +86,22 @@ votemode = {}
 autoclean = []
 confirmer = {}
 
-# YouTube Video
-RequestApi = 0
-downloadedApi = 0
-failedApi = 0
-failedApiLinkExtract = 0
-ReqYt = 0
-DlYt = 0
-FailedYt = 0
+#Youtube Api
+songvideo_requests = 0
+songvideo_success = 0
+songvideo_failed = 0
+
+songaudio_requests = 0
+songaudio_success = 0
+songaudio_failed = 0
+
+video_requests = 0
+video_success = 0
+video_failed = 0
+
+audio_requests = 0
+audio_success = 0
+audio_failed = 0
 
 START_IMG_URL = getenv(
     "START_IMG_URL", "https://files.catbox.moe/pjwlqg.jpg"
