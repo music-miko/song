@@ -15,9 +15,9 @@ from aiocache import cached, Cache
 from pyrogram.types import Message
 from config import API_URL, API_KEY
 from pyrogram.enums import MessageEntityType
-from AviaxMusic.utils.database import is_on_off
+from DeadlineTech.utils.database import is_on_off
 from youtubesearchpython.__future__ import VideosSearch
-from AviaxMusic.utils.formatters import time_to_seconds
+from DeadlineTech.utils.formatters import time_to_seconds
 
 # ----- logger setup (minimal) -----
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
