@@ -42,15 +42,15 @@ def cookie_txt_file():
 async def check_local_file(video_id: str):
     download_folder = "downloads"
     for ext in ["mp3", "m4a", "webm", "opus"]:
-    file_path = os.path.join(download_folder, f"{video_id}.{ext}")
-    if os.path.exists(file_path):
-        try:
-            with open(file_path, "rb") as f:
-                f.read(1)  # Try reading 1 byte to confirm file is real
-            return file_path
-        except Exception as e:
-            logger.warning(f"⚠️ Ghost file found and deleted: {file_path} — {e}")
-            os.remove(file_path)
+        file_path = os.path.join(download_folder, f"{video_id}.{ext}")
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, "rb") as f:
+                    f.read(1)  # Try reading 1 byte to confirm file is real
+                return file_path
+            except Exception as e:
+                logger.warning(f"⚠️ Ghost file found and deleted: {file_path} — {e}")
+                os.remove(file_path)
     return None
 
 async def download_file_with_cleanup(session, download_url, final_path, timeout_seconds=None):
