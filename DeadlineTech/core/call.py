@@ -36,7 +36,7 @@ from DeadlineTech.utils.formatters import check_duration, seconds_to_min, speed_
 from DeadlineTech.utils.inline.play import stream_markup
 from DeadlineTech.utils.stream.autoclear import auto_clean
 from DeadlineTech.utils.thumbnails import get_thumb
-img = await get_thumb(videoid)
+img = await gen_thumb(videoid)
 from strings import get_string
 
 
