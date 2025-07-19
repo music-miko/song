@@ -532,6 +532,7 @@ class YouTubeAPI:
                         config.audio_success += 1
                     config.audio_failed += 1
                 direct = True
+                config.audio_success += 1
                 return downloaded_file, direct
 
         except Exception as e:
