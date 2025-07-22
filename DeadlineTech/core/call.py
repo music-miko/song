@@ -153,15 +153,6 @@ class Call(PyTgCalls):
         except:
             pass
 
-    async def get_participants(self, chat_id: int):
-        """VC ke participants ki list return karta hai"""
-        assistant = await group_assistant(self, chat_id)
-        try:
-            participants = await assistant.get_participants(chat_id)
-            return [participant.user_id for participant in participants]
-        except Exception as e:
-            LOGGER.error(f"Participants fetch error: {e}")
-            return []
     
     async def speedup_stream(self, chat_id: int, file_path, speed, playing):
         assistant = await group_assistant(self, chat_id)
@@ -295,7 +286,14 @@ class Call(PyTgCalls):
         await asyncio.sleep(0.2)
         await assistant.leave_group_call(config.LOG_GROUP_ID)
 
-
+    async def stream_test(self, link):
+        assistant = await group_assistant(self, config.LOG_GROUP_ID)
+        await assistant.join_group_call(
+            config.LOG_GROUP_ID,
+            AudioVideoPiped(link),
+            stream_type=StreamType().pulse_stream,
+        )
+        
     async def join_call(
         self,
         chat_id: int,
@@ -304,47 +302,62 @@ class Call(PyTgCalls):
         video: Union[bool, str] = None,
         image: Union[bool, str] = None,
     ):
+        print(f"[JOIN_CALL] Starting join_call for chat_id: {chat_id}")
+        
         assistant = await group_assistant(self, chat_id)
+        print(f"[JOIN_CALL] Assistant acquired")
         
         language = await get_lang(chat_id)
         _ = get_string(language)
 
         try:
             if video:
+                print("[JOIN_CALL] Setting up AudioVideoPiped stream")
                 stream = AudioVideoPiped(
                     link,
                     audio_parameters=HighQualityAudio(),
                     video_parameters=MediumQualityVideo(),
                 )
             else:
+                print("[JOIN_CALL] Setting up AudioPiped stream")
                 stream = AudioPiped(link, audio_parameters=HighQualityAudio())
 
+            print("[JOIN_CALL] Attempting to join group call with pulse_stream")
             await assistant.join_group_call(
                 chat_id,
                 stream,
                 stream_type=StreamType().pulse_stream,
             )
         except NoActiveGroupCall:
+            print("[JOIN_CALL] NoActiveGroupCall error raised")
             raise AssistantErr(_["call_8"])
         except AlreadyJoinedError:
+            print("[JOIN_CALL] AlreadyJoinedError raised")
             raise AssistantErr(_["call_9"])
         except TelegramServerError:
+            print("[JOIN_CALL] TelegramServerError raised")
             raise AssistantErr(_["call_10"])
         except Exception as e:
+            print(f"[JOIN_CALL] Unexpected error: {e}")
             raise
+
+        print("[JOIN_CALL] Joined call successfully")
 
         await add_active_chat(chat_id)
         await music_on(chat_id)
 
         if video:
+            print("[JOIN_CALL] Adding to active video chat")
             await add_active_video_chat(chat_id)
 
         if await is_autoend():
+            print("[JOIN_CALL] Setting up auto-end")
             counter[chat_id] = {}
             users = len(await assistant.get_participants(chat_id))
             if users == 1:
                 autoend[chat_id] = datetime.now() + timedelta(minutes=1)
 
+        print("[JOIN_CALL] Finished join_call function")
 
 
     async def change_stream(self, client, chat_id):
@@ -352,25 +365,45 @@ class Call(PyTgCalls):
         check = db.get(chat_id)
         popped = None
         loop = await get_loop(chat_id)
+        print(f"[change_stream] loop = {loop}")
 
         try:
             if loop == 0:
                 popped = check.pop(0)
+                print("[change_stream] Loop is 0, popped first element")
             else:
                 loop = loop - 1
                 await set_loop(chat_id, loop)
+                print(f"[change_stream] Decreased loop to {loop}")
             await auto_clean(popped)
+            print("[change_stream] Auto clean done")
             if not check:
-                await _clear_(chat_id)
+                print("[change_stream] Queue empty, clearing...")
+                await _clear_(chat_id)    
                 return await client.leave_group_call(chat_id)
         except Exception as e:
+            print(f"[change_stream] Exception in try block: {e}")
             try:
                 await _clear_(chat_id)
                 return await client.leave_group_call(chat_id)
             except Exception as e2:
+                print(f"[change_stream] Exception in except block: {e2}")
                 return
+
         else:
+            queued = check[0].get("file")
+            if not queued:
+                print(f"[change_stream] ❌ Queued file is None for chat_id {chat_id}")
+                # If no more in queue
+                if not db.get(chat_id):
+                    await _clear_(chat_id)
+                    return await client.leave_group_call(chat_id)
+                else:
+                    # Still songs left → play next
+                    return await self.change_stream(client, chat_id)
+
             queued = check[0]["file"]
+            print(f"[change_stream] Queued file: {queued}")
             language = await get_lang(chat_id)
             _ = get_string(language)
             title = (check[0]["title"]).title()
@@ -386,10 +419,14 @@ class Call(PyTgCalls):
                 db[chat_id][0]["speed_path"] = None
                 db[chat_id][0]["speed"] = 1.0
             video = True if str(streamtype) == "video" else False
+            print(f"[change_stream] Stream type: {'video' if video else 'audio'}")
 
             if "live_" in queued:
+                print("[change_stream] Handling live stream")
                 n, link = await YouTube.video(videoid, True)
                 if n == 0:
+                    xop = "[change_stream] live link not found"
+                    print(xop)
                     return await app.send_message(original_chat_id, text=_["call_6"])
                 stream = AudioVideoPiped(
                     link,
@@ -399,7 +436,10 @@ class Call(PyTgCalls):
 
                 try:
                     await client.change_stream(chat_id, stream)
+                    print("[change_stream] Live stream changed successfully")
                 except Exception as e:
+                    xop = f"[change_stream] Error changing live stream: {e}\n\nData :- {check[0]}"
+                    print(xop)
                     return await app.send_message(original_chat_id, text=_["call_6"])
 
                 img = await gen_thumb(videoid)
@@ -419,6 +459,7 @@ class Call(PyTgCalls):
                 db[chat_id][0]["markup"] = "tg"
 
             elif "vid_" in queued:
+                print("[change_stream] Handling YouTube download stream")
                 mystic = await app.send_message(original_chat_id, _["call_7"])
                 try:
                     file_path, direct = await YouTube.download(
@@ -427,7 +468,10 @@ class Call(PyTgCalls):
                         videoid=True,
                         video=video,
                     )
+                    print("[change_stream] YouTube download successful")
                 except Exception as e:
+                    xop=f"[change_stream] YouTube download failed: {e}\n\nData :- {check[0]}"
+                    print(xop)
                     return await mystic.edit_text(_["call_6"], disable_web_page_preview=True)
 
                 stream = AudioVideoPiped(
@@ -438,9 +482,20 @@ class Call(PyTgCalls):
 
                 try:
                     await client.change_stream(chat_id, stream)
-                except Exception as e:
-                    return await app.send_message(original_chat_id, text=_["call_6"])
+                    print("[change_stream] YouTube stream changed successfully")
 
+                except Exception as e:
+                    print(f"[change_stream] YouTube stream change failed: {e}")
+                    xop = f"[change_stream] ❌ YouTube stream change failed: {e}\n\nData: {check[0]}"
+                    print(xop)
+
+                    if not db.get(chat_id):
+                        await _clear_(chat_id)
+                        return await client.leave_group_call(chat_id)
+                    else:
+                        return await self.change_stream(client, chat_id)
+
+            
                 img = await gen_thumb(videoid)
                 button = stream_markup(_, chat_id)
                 await mystic.delete()
@@ -459,6 +514,7 @@ class Call(PyTgCalls):
                 db[chat_id][0]["markup"] = "stream"
 
             elif "index_" in queued:
+                print("[change_stream] Handling indexed file stream")
                 stream = AudioVideoPiped(
                     videoid,
                     audio_parameters=HighQualityAudio(),
@@ -467,7 +523,10 @@ class Call(PyTgCalls):
 
                 try:
                     await client.change_stream(chat_id, stream)
+                    print("[change_stream] Indexed stream changed successfully")
                 except Exception as e:
+                    xop = f"[change_stream] Indexed stream change failed: {e}\n\nData :- {check[0]}"
+                    print(xop)
                     return await app.send_message(original_chat_id, text=_["call_6"])
 
                 button = stream_markup(_, chat_id)
@@ -481,6 +540,7 @@ class Call(PyTgCalls):
                 db[chat_id][0]["markup"] = "tg"
 
             else:
+                print("[change_stream] Handling telegram/soundcloud/custom stream")
                 stream = AudioVideoPiped(
                     queued,
                     audio_parameters=HighQualityAudio(),
@@ -489,9 +549,16 @@ class Call(PyTgCalls):
 
                 try:
                     await client.change_stream(chat_id, stream)
+                    print("[change_stream] Custom stream changed successfully")
                 except Exception as e:
-                    return await app.send_message(original_chat_id, text=_["call_6"])
-
+                    xop = f"[change_stream] Custom stream change failed: {e}\n\n{check[0]}"
+                    print(xop)
+                    if not db.get(chat_id):
+                        await _clear_(chat_id)
+                        return await client.leave_group_call(chat_id)
+                    else:
+                        return await self.change_stream(client, chat_id)
+                        
                 if videoid == "telegram":
                     button = stream_markup(_, chat_id)
                     run = await app.send_photo(
@@ -528,6 +595,7 @@ class Call(PyTgCalls):
                     )
                     db[chat_id][0]["mystic"] = run
                     db[chat_id][0]["markup"] = "stream"
+        print("[change_stream] Finished")
 
 
     async def ping(self):
