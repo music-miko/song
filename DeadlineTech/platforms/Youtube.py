@@ -251,7 +251,7 @@ async def fetch_video_stream_url(link: str) -> str | None:
 # 📊 Function to get both audio & video stream stats
 def get_stream_stats() -> str:
     return (
-        "<pre>"
+        "<pre><code class="language-python">"
         "📊 Stream Fetch Stats:\n\n"
         "🎵 Audio Stream:\n"
         f"• 🔁 Total Requests: {ReqGetStream}\n"
@@ -263,7 +263,7 @@ def get_stream_stats() -> str:
         f"• ✅ Success: {SuccessGetVideoStream}\n"
         f"• ❌ Failed: {FailedGetVideoStream}\n"
         f"• ⏱️ Timed Out: {TimeOutVideoStream}"
-        "</pre>"
+        "</code></pre>"
     )
 
 
