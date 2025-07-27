@@ -35,7 +35,7 @@ def private_panel(_):
         ],
 
         [
-            InlineKeyboardButton(text=_["S_B_10"], url=f"tg://user?id=7765692814"),
+            InlineKeyboardButton(text=_["S_B_10"], user_id=7321657753"),
             InlineKeyboardButton(text=_["S_B_9"], url=config.SUPPORT_CHAT)
             
         ],
