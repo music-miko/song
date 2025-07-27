@@ -128,7 +128,7 @@ YOUTUBE_IMG_URL = "https://files.catbox.moe/fpknxj.jpg"
 SPOTIFY_ARTIST_IMG_URL = "https://files.catbox.moe/1xn73k.jpg"
 SPOTIFY_ALBUM_IMG_URL = "https://files.catbox.moe/1xn73k.jpg"
 SPOTIFY_PLAYLIST_IMG_URL = "https://files.catbox.moe/1xn73k.jpg"
-
+YOUTUBE_IMG_URL = "https://files.catbox.moe/3y9pnd.jpg"
 
 def time_to_seconds(time):
     stringt = str(time)
