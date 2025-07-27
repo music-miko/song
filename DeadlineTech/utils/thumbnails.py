@@ -1,13 +1,11 @@
-import os
-import re
-import random
-import aiohttp
-import aiofiles
-import traceback
-
-from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
-from youtubesearchpython.__future__ import VideosSearch
-
+import os 
+import aiohttp 
+import aiofiles 
+ 
+from config import YOUTUBE_IMG_URL 
+ 
+async def get_thumb(videoid): 
+    return YOUTUBE_IMG_URL 
 
 def changeImageSize(maxWidth, maxHeight, image):
     ratio = min(maxWidth / image.size[0], maxHeight / image.size[1])
