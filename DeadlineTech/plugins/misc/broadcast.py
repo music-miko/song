@@ -3,7 +3,7 @@ import logging
 import asyncio
 
 from pyrogram import filters
-from pyrogram.enums import ChatMembersFilter, ChatMembersFilter
+from pyrogram.enums import ChatMembersFilter
 from pyrogram.errors import FloodWait, RPCError
 from pyrogram.types import Message
 
@@ -19,6 +19,8 @@ from DeadlineTech.utils.database import (
 from DeadlineTech.utils.decorators.language import language
 from DeadlineTech.utils.formatters import alpha_to_int
 from config import adminlist
+
+# Logger config
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - [%(levelname)s] - %(message)s",
@@ -26,7 +28,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("Broadcast")
 
-SEMAPHORE = asyncio.Semaphore(10)
+SEMAPHORE = asyncio.Semaphore(30)  # Increased concurrency
 
 @app.on_message(filters.command("broadcast") & SUDOERS)
 async def broadcast_command(client, message: Message):
@@ -94,7 +96,7 @@ async def broadcast_command(client, message: Message):
         )
 
         # Define delivery function
-        async def deliver(chat_id, is_user, retries=1):
+        async def deliver(chat_id, is_user, retries=3):
             nonlocal sent_users, sent_chats, failed
             async with SEMAPHORE:
                 try:
@@ -103,7 +105,12 @@ async def broadcast_command(client, message: Message):
                     elif mode == "forward":
                         await app.forward_messages(chat_id, message.chat.id, [content.id])
                     else:
-                        await content.copy(chat_id)
+                        try:
+                            await content.copy(chat_id)
+                        except Exception as e:
+                            logger.warning(f"Copy failed to {chat_id}: {e}")
+                            failed += 1
+                            return
 
                     if is_user:
                         sent_users += 1
@@ -111,16 +118,19 @@ async def broadcast_command(client, message: Message):
                         sent_chats += 1
 
                 except FloodWait as e:
-                    logger.warning(f"FloodWait {e.value}s in chat {chat_id}")
-                    await asyncio.sleep(min(e.value, 60))
+                    wait_time = min(e.value, 120)
+                    logger.warning(f"FloodWait {e.value}s in chat {chat_id}, waiting {wait_time}s")
+                    await asyncio.sleep(wait_time)
                     if retries > 0:
                         return await deliver(chat_id, is_user, retries - 1)
                     failed += 1
 
-                except RPCError:
+                except RPCError as e:
+                    logger.warning(f"RPCError in chat {chat_id}: {e}")
                     failed += 1
 
-                except Exception:
+                except Exception as e:
+                    logger.error(f"Error delivering to {chat_id}: {e}")
                     failed += 1
 
         # Combine all targets
@@ -129,9 +139,9 @@ async def broadcast_command(client, message: Message):
         for i in range(0, len(targets), 100):
             batch = targets[i:i + 100]
             await asyncio.gather(*[deliver(chat_id, is_user) for chat_id, is_user in batch])
-            await asyncio.sleep(1.5)
+            await asyncio.sleep(2.5)  # Throttle between batches
 
-        # Summary
+        # Final summary
         await message.reply_text(
             f"✅ <b>Broadcast Completed</b>\n\n"
             f"➤ Mode: <code>{mode}</code>\n"
@@ -147,6 +157,7 @@ async def broadcast_command(client, message: Message):
         await message.reply_text(f"🚫 Broadcast failed: {str(e)}")
 
 
+# Adminlist Auto-cleaner
 async def auto_clean():
     while True:
         await asyncio.sleep(10)
@@ -156,15 +167,10 @@ async def auto_clean():
                 if chat_id not in adminlist:
                     adminlist[chat_id] = []
 
-                # use the proper enum here 👇
-                async for member in app.get_chat_members(
-                    chat_id, filter=ChatMembersFilter.ADMINISTRATORS
-                ):
-                    # some admins may not have .privileges (older Telegram versions)
+                async for member in app.get_chat_members(chat_id, filter=ChatMembersFilter.ADMINISTRATORS):
                     if getattr(member, "privileges", None) and member.privileges.can_manage_video_chats:
                         adminlist[chat_id].append(member.user.id)
 
-                # add authorised helper‑users
                 for username in await get_authuser_names(chat_id):
                     user_id = await alpha_to_int(username)
                     adminlist[chat_id].append(user_id)
