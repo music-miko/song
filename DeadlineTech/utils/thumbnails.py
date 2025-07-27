@@ -3,9 +3,7 @@ import aiohttp
 import aiofiles 
  
 from config import YOUTUBE_IMG_URL 
- 
-async def get_thumb(videoid): 
-    return YOUTUBE_IMG_URL 
+
 
 def changeImageSize(maxWidth, maxHeight, image):
     ratio = min(maxWidth / image.size[0], maxHeight / image.size[1])
@@ -49,6 +47,7 @@ def fit_text(draw, text, max_width, font_path, start_size, min_size):
 
 
 async def get_thumb(videoid: str):
+    return YOUTUBE_IMG_URL
     url = f"https://www.youtube.com/watch?v={videoid}"
     try:
         results = VideosSearch(url, limit=1)
