@@ -46,6 +46,3 @@ RUN chmod +x start
 
 # Final entrypoint
 CMD ["/bin/bash", "-c", "source ~/.bashrc && bash start"]
-
-# Final CMD
-CMD ["/bin/bash", "-c", "source ~/.bashrc && bash start"]
