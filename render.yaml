@@ -2,6 +2,7 @@ services:
   - type: worker                      # Not "web"
     name: music-bot
     env: docker
-    plan: free
+    plan: pro                         # or pro max, optional in most cases
     dockerfilePath: ./Dockerfile
     autoDeploy: true
+    region: singapore                # or oregon, frankfurt, etc.
