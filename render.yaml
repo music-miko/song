@@ -1,8 +1,7 @@
 services:
-  - type: web
+  - type: worker                      # Not "web"
     name: music-bot
     env: docker
     plan: free
-    autoDeploy: false
-    region: singapore  # or oregon/frankfurt depending on your location
     dockerfilePath: ./Dockerfile
+    autoDeploy: true
