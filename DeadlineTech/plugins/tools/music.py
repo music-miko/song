@@ -1,5 +1,5 @@
 # 🎿 DeadlineTech Music Bot (Enhanced with Logging & Thumbnails + File Cache)
-"""
+
 import os
 import re
 import asyncio
@@ -230,4 +230,4 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
         asyncio.create_task(remove_file_later(thumb_path))
     asyncio.create_task(remove_file_later(file_path))
     asyncio.create_task(delete_message_later(client, message.chat.id, audio_msg.id))
-"""
+
