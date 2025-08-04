@@ -4,5 +4,5 @@ services:
     env: docker
     plan: pro                         # or pro max, optional in most cases
     dockerfilePath: ./Dockerfile
-    autoDeploy: true
+    autoDeploy: false
     region: singapore                # or oregon, frankfurt, etc.
