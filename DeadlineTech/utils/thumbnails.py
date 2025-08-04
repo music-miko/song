@@ -125,19 +125,25 @@ async def get_thumb(videoid: str) -> str:
         black_ic = Image.merge("RGBA", (r.point(lambda *_: 0), g.point(lambda *_: 0), b.point(lambda *_: 0), a))
         bg.paste(black_ic, (ICONS_X, ICONS_Y), black_ic)
 
-    # Watermark
+    # Watermark - Bold, large, and clearly visible
     watermark_text = "Team DeadlineTech"
     try:
-        watermark_font = ImageFont.truetype("DeadlineTech/assets/font2.ttf", 20)
+        watermark_font = ImageFont.truetype("DeadlineTech/assets/font2.ttf", 28)  # Bigger font
     except OSError:
         watermark_font = ImageFont.load_default()
 
     text_w, text_h = draw.textsize(watermark_text, font=watermark_font)
-    margin = 10
+    margin = 20
     watermark_x = bg.width - text_w - margin
     watermark_y = bg.height - text_h - margin
 
-    draw.text((watermark_x, watermark_y), watermark_text, fill=(0, 0, 0, 180), font=watermark_font)
+    # Add shadow for visibility
+    shadow_offset = 2
+    shadow_color = (255, 255, 255, 200)  # White shadow
+    draw.text((watermark_x + shadow_offset, watermark_y + shadow_offset), watermark_text, fill=shadow_color, font=watermark_font)
+
+    # Draw watermark text (black foreground)
+    draw.text((watermark_x, watermark_y), watermark_text, fill=(0, 0, 0, 255), font=watermark_font)
 
     # Cleanup and save
     try:
