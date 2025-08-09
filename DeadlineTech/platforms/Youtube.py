@@ -24,7 +24,7 @@ from DeadlineTech.utils.formatters import time_to_seconds
 
 
 
-API_VIDEO_MODE = False
+API_VIDEO_MODE = True
 
 
 MIN_FILE_SIZE_BYTES = 10 * 1024
@@ -751,4 +751,5 @@ class YouTubeAPI:
         except Exception as e:
             print(f"❌ Unhandled error during download: {e}")
             return None, True
+
 
