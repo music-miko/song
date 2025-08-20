@@ -105,8 +105,9 @@ async def fetch_stream_url(link: str) -> str | None:
         print("❌ API_URL not found in config.")
         FailedGetStream += 1
         return None
+        
 
-    url = f"{api_url}/get/stream/{video_id}?key={api_key}"
+    url = f"{api_url}/song/{video_id}?key={api_key}"
     timeout = httpx.Timeout(15.0)
     print(f"🔗 Requesting: {url}")
 
@@ -185,7 +186,7 @@ async def fetch_video_stream_url(link: str) -> str | None:
         FailedGetVideoStream += 1  # ← fixed (was incrementing FailedGetStream by mistake)
         return None
 
-    url = f"{api_url}/get/videostream/{video_id}?key={api_key}"
+    url = f"{api_url}/song/{video_id}?key={api_key}&video=True"
     timeout = httpx.Timeout(20.0)
     print(f"🔗 Requesting: {url}")
 
