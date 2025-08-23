@@ -67,24 +67,30 @@ async def check_local_file(video_id: str):
 
 
 # ✅ Function to check if stream URL is valid
-async def is_valid_stream_url(url: str) -> bool:
+async def is_valid_stream_url(url: str, start_time: float) -> tuple[bool, float, float]:
     try:
-        timeout = httpx.Timeout(5.0)
-        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-            response = await client.head(url)
-            if response.status_code == 200:
-                content_type = response.headers.get("Content-Type", "").lower()
-                return any(x in content_type for x in ["audio", "video", "webm", "m4a", "mp4"])
+        connect_start = time.perf_counter()
+        timeout = aiohttp.ClientTimeout(total=5)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url, allow_redirects=True) as response:
+                if response.status == 200:
+                    async for chunk in response.content.iter_chunked(1):  # sirf 1 byte check
+                        if chunk:
+                            connect_time = round(time.perf_counter() - connect_start, 3)
+                            total_time = round(time.perf_counter() - start_time, 3)
+                            return True, connect_time, total_time
+                        break
     except Exception as e:
         print(f"⚠️ Validation error: {e}")
-    return False
+    return False, 0.0, 0.0
+
+
 
 
 
 # 🔄 Function to get and validate stream URL with retry
 async def fetch_stream_url(link: str) -> str | None:
     global ReqGetStream, SuccessGetStream, FailedGetStream, TimeOutStream
-
     ReqGetStream += 1
 
     try:
@@ -95,76 +101,47 @@ async def fetch_stream_url(link: str) -> str | None:
         return None
 
     api_key = getattr(config, "API_KEY", None)
-    if not api_key:
-        print("❌ API_KEY not found in config.")
-        FailedGetStream += 1
-        return None
-        
     api_url = getattr(config, "API_URL", None)
-    if not api_url:  # ← FIXED HERE
-        print("❌ API_URL not found in config.")
+    if not api_key or not api_url:
+        print("❌ API_KEY or API_URL missing in config.")
         FailedGetStream += 1
         return None
-        
 
     url = f"{api_url}/song/{video_id}?key={api_key}"
-    timeout = httpx.Timeout(15.0)
-    print(f"🔗 Requesting: {url}")
+    timeout = aiohttp.ClientTimeout(total=10)
+    print(f"🔗 Requesting (Audio): {url}")
 
     start_time = time.perf_counter()
-
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         attempt = 1
-        while attempt <= 5 and (time.perf_counter() - start_time) < 15.0:
-            elapsed = time.perf_counter() - start_time
-
+        while attempt <= 3 and (time.perf_counter() - start_time) < 10.0:
             try:
-                print(f"🔁 Attempt #{attempt} (Elapsed: {round(elapsed, 2)}s)")
-                response = await client.get(url)
-                connect_time = round(response.elapsed.total_seconds(), 3)
-                total_time = round(time.perf_counter() - start_time, 3)
-
-                print(f"⚡ Connected in: {connect_time}s")
-                print(f"📦 Response received in: {total_time}s")
-
-                if response.status_code == 200:
-                    data = response.json()
-                    stream_url = data.get("stream_url")
-
-                    if stream_url:
-                        print(f"🎵 Received stream URL: {stream_url}")
-                        valid = await is_valid_stream_url(stream_url)
-                        if valid:
-                            print("✅ Stream URL is valid.")
-                            SuccessGetStream += 1
-                            return stream_url
-                        else:
-                            print("❌ Invalid stream content. Retrying...")
-                    else:
-                        print("⚠️ stream_url missing in response. Retrying...")
-
-                else:
-                    print(f"❌ API error: {response.status_code}")
-            except httpx.ConnectTimeout:
-                print("⏱️ Connection timed out.")
-            except httpx.ReadTimeout:
-                print("⏱️ Read timed out.")
+                print(f"🔁 Audio Attempt #{attempt}")
+                async with session.get(url, allow_redirects=True) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get("status") == "done":
+                            stream_url = data.get("stream_url")
+                            if stream_url and await is_valid_stream_url(stream_url, start_time):
+                                SuccessGetStream += 1
+                                print(f"🎵 Direct stream URL ready: {stream_url}")
+                                return stream_url
+                    elif response.status == 404:
+                        FailedGetStream += 1
+                        return None
             except Exception as e:
-                print(f"⚠️ Request error: {e}")
-
+                print(f"⚠️ Request error (Audio): {e}")
             await asyncio.sleep(0.5)
             attempt += 1
 
-    print("⏱️ Total timeout exceeded (15s) or max attempts (5) reached.")
     TimeOutStream += 1
     FailedGetStream += 1
     return None
 
 
-# 🔄 Fetch video stream URL from /get/videostream/
+# 🎥 Fetch video stream URL (Direct)
 async def fetch_video_stream_url(link: str) -> str | None:
     global ReqGetVideoStream, SuccessGetVideoStream, FailedGetVideoStream, TimeOutVideoStream
-
     ReqGetVideoStream += 1
 
     try:
@@ -175,79 +152,42 @@ async def fetch_video_stream_url(link: str) -> str | None:
         return None
 
     api_key = getattr(config, "API_KEY", None)
-    if not api_key:
-        print("❌ API_KEY not found in config.")
+    api_url = getattr(config, "API_URL", None)
+    if not api_key or not api_url:
+        print("❌ API_KEY or API_URL missing in config.")
         FailedGetVideoStream += 1
         return None
 
-    api_url = getattr(config, "API_URL", None)
-    if not api_url:
-        print("❌ API_URL not found in config.")
-        FailedGetVideoStream += 1  # ← fixed (was incrementing FailedGetStream by mistake)
-        return None
-
     url = f"{api_url}/song/{video_id}?key={api_key}&video=True"
-    timeout = httpx.Timeout(20.0)
-    print(f"🔗 Requesting: {url}")
+    timeout = aiohttp.ClientTimeout(total=15)
+    print(f"🔗 Requesting (Video): {url}")
 
     start_time = time.perf_counter()
-
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         attempt = 1
-        while attempt <= 5 and (time.perf_counter() - start_time) < 20.0:
-            elapsed = time.perf_counter() - start_time
-
+        while attempt <= 3 and (time.perf_counter() - start_time) < 15.0:
             try:
-                print(f"🔁 Attempt #{attempt} (Elapsed: {round(elapsed, 2)}s)")
-                response = await client.get(url)
-                connect_time = round(response.elapsed.total_seconds(), 3)
-                total_time = round(time.perf_counter() - start_time, 3)
-
-                print(f"⚡ Connected in: {connect_time}s")
-                print(f"📦 Response received in: {total_time}s")
-
-                if response.status_code == 200:
-                    data = response.json()
-                    if data.get("status") == "done":
-                        stream_url = data.get("stream_url")
-                        if stream_url:
-                            print(f"🎥 Received video stream URL: {stream_url}")
-                            valid = await is_valid_stream_url(stream_url)
-                            if valid:
-                                print("✅ Stream URL is valid.")
+                print(f"🔁 Video Attempt #{attempt}")
+                async with session.get(url, allow_redirects=True) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get("status") == "done":
+                            stream_url = data.get("stream_url")
+                            if stream_url and await is_valid_stream_url(stream_url, start_time):
                                 SuccessGetVideoStream += 1
+                                print(f"🎥 Direct stream URL ready: {stream_url}")
                                 return stream_url
-                            else:
-                                print("❌ Invalid video stream content. Retrying...")
-                        else:
-                            print("⚠️ 'stream_url' missing in response. Retrying...")
-                    else:
-                        print(f"⚠️ Unexpected status: {data.get('status')}. Retrying...")
-
-                elif response.status_code == 404:
-                    data = response.json()
-                    print(f"❌ Stream fetch failed: {data.get('error')}")
-                    FailedGetVideoStream += 1
-                    return None
-
-                else:
-                    print(f"❌ Unexpected status code: {response.status_code}. Retrying...")
-
-            except httpx.ConnectTimeout:
-                print("⏱️ Connection timed out.")
-            except httpx.ReadTimeout:
-                print("⏱️ Read timed out.")
+                    elif response.status == 404:
+                        FailedGetVideoStream += 1
+                        return None
             except Exception as e:
-                print(f"⚠️ Request error: {e}")
-
+                print(f"⚠️ Request error (Video): {e}")
             await asyncio.sleep(0.5)
             attempt += 1
 
-    print("⏱️ Total timeout exceeded (20s) or max attempts (5) reached.")
     TimeOutVideoStream += 1
     FailedGetVideoStream += 1
     return None
-
 
 # 📊 Function to get both audio & video stream stats
 def get_stream_stats() -> str:
@@ -752,5 +692,3 @@ class YouTubeAPI:
         except Exception as e:
             print(f"❌ Unhandled error during download: {e}")
             return None, True
-
-
