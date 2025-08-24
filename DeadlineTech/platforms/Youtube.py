@@ -15,8 +15,46 @@ from typing import Union
 from pyrogram.types import Message
 from pyrogram.enums import MessageEntityType
 from youtubesearchpython.__future__ import VideosSearch
-from DeadlineTech.utils.database import is_on_off
-from DeadlineTech.utils.formatters import time_to_seconds
+from ..utils.database import is_on_off
+from ..utils.formatters import time_to_seconds
+
+API_VIDEO_MODE = True
+
+
+MIN_FILE_SIZE_BYTES = 10 * 1024
+RETRIES = 3
+MAX_TOTAL_TIME = 12
+# ----- logger setup (minimal) -----
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = logging.getLogger(__name__)
+# ---------------------------------------------------------------
+# Stream Url Counters
+ReqGetStream = 0
+SuccessGetStream = 0
+FailedGetStream = 0
+TimeOutStream = 0
+# Stream Video Url Counters
+ReqGetVideoStream = 0
+SuccessGetVideoStream = 0
+FailedGetVideoStream = 0
+TimeOutVideoStream = 0
+# 📊 Function to get both audio & video stream stats
+def get_stream_stats() -> str:
+    return (
+        "<pre><code>"
+        "📊 Stream Fetch Stats:\n\n"
+        "🎵 Audio Stream:\n"
+        f"• 🔁 Total Requests: {ReqGetStream}\n"
+        f"• ✅ Success: {SuccessGetStream}\n"
+        f"• ❌ Failed: {FailedGetStream}\n"
+        f"• ⏱️ Timed Out: {TimeOutStream}\n\n"
+        "🎥 Video Stream:\n"
+        f"• 🔁 Total Requests: {ReqGetVideoStream}\n"
+        f"• ✅ Success: {SuccessGetVideoStream}\n"
+        f"• ❌ Failed: {FailedGetVideoStream}\n"
+        f"• ⏱️ Timed Out: {TimeOutVideoStream}"
+        "</code></pre>"
+    )
 
 
 async def fetch_stream_url(link: str, video: bool = False) -> str | None:
@@ -591,4 +629,5 @@ class YouTubeAPI:
             downloaded_file = await loop.run_in_executor(None, audio_dl)
             
         return downloaded_file, direct
+
 
