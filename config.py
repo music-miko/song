@@ -32,7 +32,7 @@ LOGGER_ID = int(getenv("LOGGER_ID", None))
 SAVE_CHANNEL_ID = int(getenv("SAVE_CHANNEL_ID", "-1002829671432"))
 
 # Get this value from @Harry_RoxBot on Telegram by /id
-OWNER_ID = 8162844043
+OWNER_ID = int(getenv("OWNER_ID", "8162844043"))
 
 ## Fill these variables if you're deploying on heroku.
 # Your heroku app name
