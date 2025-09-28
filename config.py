@@ -49,9 +49,9 @@ GIT_TOKEN = getenv(
     "GIT_TOKEN", None
 )  # Fill this variable if your upstream repository is private
 
-SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL", "https://t.me/DeadlineTechTeam")
-SUPPORT_CHAT = getenv("SUPPORT_CHAT", "https://t.me/DeadlineTechsupport")
-SUPPORT_GROUP = getenv("SUPPORT_GROUP", "https://t.me/DeadlineTechsupport")
+SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL", "https://t.me/ArcUpdates")
+SUPPORT_CHAT = getenv("SUPPORT_CHAT", "https://t.me/ArcChatz")
+SUPPORT_GROUP = getenv("SUPPORT_GROUP", "https://t.me/ArcChatz")
 
 # Set this to True if you want the assistant to automatically leave chats after an interval
 AUTO_LEAVING_ASSISTANT = bool(getenv("AUTO_LEAVING_ASSISTANT", True))
@@ -113,13 +113,13 @@ DlYt = 0
 FailedYt = 0
 
 START_IMG_URL = getenv(
-    "START_IMG_URL", "https://files.catbox.moe/l61yci.jpg"
+    "START_IMG_URL", "https://files.catbox.moe/yjl5om.jpg"
 )
 PING_IMG_URL = getenv(
-    "PING_IMG_URL", "https://files.catbox.moe/ou29gb.jpg"
+    "PING_IMG_URL", "https://files.catbox.moe/lq63qh.jpg"
 )
 PLAYLIST_IMG_URL = "https://files.catbox.moe/tny9ug.jpg"
-STATS_IMG_URL = "https://files.catbox.moe/k3e3bg.jpg"
+STATS_IMG_URL = "https://files.catbox.moe/uih0vr.jpg"
 TELEGRAM_AUDIO_URL = "https://files.catbox.moe/nknnw1.jpg"
 TELEGRAM_VIDEO_URL = "https://files.catbox.moe/1xn73k.jpg"
 STREAM_IMG_URL = "https://files.catbox.moe/tny9ug.jpg"
