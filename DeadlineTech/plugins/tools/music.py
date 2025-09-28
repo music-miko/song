@@ -203,7 +203,7 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
         title=title,
         performer="DeadlineTech",
         duration=duration,
-        caption=f"🎿 <b>{title}</b>\n🕒 <b>Duration:</b> {duration_str}\n🔗 <a href=\"{video_url}\">Watch on YouTube</a>\n\n🎶 Requested by: <b>{message.from_user.first_name}</b>\n⚡ <i>Enjoy your track with</i> <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech</a>",
+        caption=f"🎿 <b>{title}</b>\n🕒 <b>Duration:</b> {duration_str}\n🔗 <a href=\"{video_url}\">Watch on YouTube</a>\n\n🎶 Requested by: <b>{message.from_user.first_name}</b>\n⚡ <i>Enjoy your track with</i> <a href=\"https://t.me/ArcUpdates\">Arc Bots</a>",
         thumb=thumb_path if thumb_path else None,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🎧 Get Your Music", url="https://t.me/DeadlineTechMusic")]
@@ -218,7 +218,7 @@ async def send_audio_by_video_id(client: Client, message: Message, video_id: str
                 title=title,
                 performer="DeadlineTech",
                 duration=duration,
-                caption=f"🎼 <b>{title}</b>\n🕒 Duration: {duration_str}\n📱 Source: <a href=\"{video_url}\">YouTube</a>\n🔊 Delivered by: <a href=\"https://t.me/DeadlineTechTeam\">DeadlineTech Music Bot</a>",
+                caption=f"🎼 <b>{title}</b>\n🕒 Duration: {duration_str}\n📱 Source: <a href=\"{video_url}\">YouTube</a>\n🔊 Delivered by: <a href=\"https://t.me/ArcUpdates\">Arc Bots</a>",
                 thumb=thumb_path if thumb_path else None
             ) 
             mark_song_as_sent(video_id, sent.audio.file_id)
