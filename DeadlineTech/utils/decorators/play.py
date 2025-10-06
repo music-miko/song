@@ -58,7 +58,7 @@ def PlayWrapper(command):
 
             if await is_maintenance() is False and message.from_user.id not in SUDOERS:
                 return await message.reply_text(
-                    f"{app.mention} ɪʃ ʏɴᴅᴇʀ ᴍɐɪɴᴛᴇɴᴀɴᴄᴇ.\nPlease visit <a href={SUPPORT_CHAT}>support chat</a>.",
+                    f"{app.mention} is under maintenance.\nPlease visit <a href={SUPPORT_CHAT}>support chat</a>.",
                     disable_web_page_preview=True
                 )
 
