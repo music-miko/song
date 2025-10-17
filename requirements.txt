@@ -27,4 +27,4 @@ unidecode
 git+https://github.com/yt-dlp/yt-dlp.git@master
 youtube-search
 youtube-search-python
-uvloop
+uvloop==0.21.0
