@@ -1,10 +1,8 @@
-import time
-import logging
 import asyncio
-
+import logging
 from pyrogram import filters
 from pyrogram.enums import ChatMembersFilter
-from pyrogram.errors import FloodWait, RPCError
+from pyrogram.errors import FloodWait, RPCError, Forbidden, PeerIdInvalid
 from pyrogram.types import Message
 
 from DeadlineTech import app
@@ -20,7 +18,7 @@ from DeadlineTech.utils.decorators.language import language
 from DeadlineTech.utils.formatters import alpha_to_int
 from config import adminlist
 
-# Logger config
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - [%(levelname)s] - %(message)s",
@@ -28,7 +26,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger("Broadcast")
 
-SEMAPHORE = asyncio.Semaphore(30)  # Increased concurrency
+# Limits concurrency to avoid flooding
+SEMAPHORE = asyncio.Semaphore(25)
+
 
 @app.on_message(filters.command("broadcast") & SUDOERS)
 async def broadcast_command(client, message: Message):
@@ -53,15 +53,13 @@ async def broadcast_command(client, message: Message):
             target_users = []
             target_chats = [c["chat_id"] for c in chats]
         else:
-            logger.warning("Incorrect broadcast format used.")
             return await message.reply_text(
-                "❗ Usage:\n"
-                "/broadcast -all/-users/-chats [-forward]\n"
-                "📝 Example: /broadcast -all Hello!"
+                "❗ <b>Usage:</b>\n"
+                "`/broadcast -all/-users/-chats [-forward]`\n\n"
+                "🧾 Example: `/broadcast -all Hello!`"
             )
 
         if not target_users and not target_chats:
-            logger.info("No target recipients found.")
             return await message.reply_text("⚠ No recipients found.")
 
         # Extract content
@@ -74,29 +72,25 @@ async def broadcast_command(client, message: Message):
             text = text.strip()
 
             if not text:
-                return await message.reply_text("📝 Reply to a message or add content after the command.")
+                return await message.reply_text(
+                    "📝 Reply to a message or write text after the command."
+                )
             content = text
 
-        # Summary
         total = len(target_users + target_chats)
-        sent_users = 0
-        sent_chats = 0
-        failed = 0
-
-        logger.info(f"Broadcast mode: {mode}")
-        logger.info(f"Targets - Users: {len(target_users)}, Chats: {len(target_chats)}, Total: {total}")
+        sent_users, sent_chats, failed = 0, 0, 0
 
         await message.reply_text(
-            f"📢 <b>Broadcast Started</b>\n\n"
-            f"➤ Mode: <code>{mode}</code>\n"
+            f"📣 <b>Broadcast started</b>\n"
+            f"Mode: <code>{mode}</code>\n"
             f"👤 Users: <code>{len(target_users)}</code>\n"
             f"👥 Chats: <code>{len(target_chats)}</code>\n"
             f"📦 Total: <code>{total}</code>\n"
-            f"⏳ Please wait while messages are being sent..."
+            f"⏳ Sending... please wait."
         )
 
-        # Define delivery function
-        async def deliver(chat_id, is_user, retries=3):
+        # Delivery helper
+        async def deliver(chat_id, is_user, retries=5, delay=1):
             nonlocal sent_users, sent_chats, failed
             async with SEMAPHORE:
                 try:
@@ -105,12 +99,7 @@ async def broadcast_command(client, message: Message):
                     elif mode == "forward":
                         await app.forward_messages(chat_id, message.chat.id, [content.id])
                     else:
-                        try:
-                            await content.copy(chat_id)
-                        except Exception as e:
-                            logger.warning(f"Copy failed to {chat_id}: {e}")
-                            failed += 1
-                            return
+                        await content.copy(chat_id)
 
                     if is_user:
                         sent_users += 1
@@ -118,46 +107,45 @@ async def broadcast_command(client, message: Message):
                         sent_chats += 1
 
                 except FloodWait as e:
-                    wait_time = min(e.value, 120)
-                    logger.warning(f"FloodWait {e.value}s in chat {chat_id}, waiting {wait_time}s")
+                    wait_time = min(e.value, 300)
+                    logger.warning(f"FloodWait {e.value}s for {chat_id}, pausing {wait_time}s")
                     await asyncio.sleep(wait_time)
                     if retries > 0:
-                        return await deliver(chat_id, is_user, retries - 1)
+                        await deliver(chat_id, is_user, retries - 1, delay * 2)
+                    else:
+                        failed += 1
+                except (Forbidden, PeerIdInvalid):
                     failed += 1
-
                 except RPCError as e:
-                    logger.warning(f"RPCError in chat {chat_id}: {e}")
+                    logger.warning(f"RPCError for {chat_id}: {e}")
                     failed += 1
-
                 except Exception as e:
-                    logger.error(f"Error delivering to {chat_id}: {e}")
+                    logger.error(f"Error sending to {chat_id}: {e}")
                     failed += 1
+                await asyncio.sleep(delay)
 
-        # Combine all targets
         targets = [(uid, True) for uid in target_users] + [(cid, False) for cid in target_chats]
 
         for i in range(0, len(targets), 100):
-            batch = targets[i:i + 100]
-            await asyncio.gather(*[deliver(chat_id, is_user) for chat_id, is_user in batch])
-            await asyncio.sleep(2.5)  # Throttle between batches
+            batch = targets[i : i + 100]
+            await asyncio.gather(*[deliver(cid, is_user) for cid, is_user in batch])
+            await asyncio.sleep(3)
 
-        # Final summary
         await message.reply_text(
-            f"✅ <b>Broadcast Completed</b>\n\n"
-            f"➤ Mode: <code>{mode}</code>\n"
-            f"👤 Users Sent: <code>{sent_users}</code>\n"
-            f"👥 Chats Sent: <code>{sent_chats}</code>\n"
-            f"📦 Total Delivered: <code>{sent_users + sent_chats}</code>\n"
+            f"✅ <b>Broadcast completed</b>\n\n"
+            f"Mode: <code>{mode}</code>\n"
+            f"👤 Users sent: <code>{sent_users}</code>\n"
+            f"👥 Chats sent: <code>{sent_chats}</code>\n"
+            f"📦 Delivered: <code>{sent_users + sent_chats}</code>\n"
             f"❌ Failed: <code>{failed}</code>"
         )
-        logger.info(f"Broadcast finished. Success: {sent_users + sent_chats}, Failed: {failed}")
 
     except Exception as e:
         logger.exception("Unhandled error in broadcast_command")
-        await message.reply_text(f"🚫 Broadcast failed: {str(e)}")
+        await message.reply_text(f"🚫 Broadcast failed: {e}")
 
 
-# Adminlist Auto-cleaner
+# Periodic adminlist refresher
 async def auto_clean():
     while True:
         await asyncio.sleep(10)
@@ -174,6 +162,5 @@ async def auto_clean():
                 for username in await get_authuser_names(chat_id):
                     user_id = await alpha_to_int(username)
                     adminlist[chat_id].append(user_id)
-
         except Exception as e:
             logger.warning(f"AutoClean error: {e}")
