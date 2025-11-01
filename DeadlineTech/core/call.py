@@ -35,7 +35,7 @@ from DeadlineTech.utils.exceptions import AssistantErr
 from DeadlineTech.utils.formatters import check_duration, seconds_to_min, speed_converter
 from DeadlineTech.utils.inline.play import stream_markup
 from DeadlineTech.utils.stream.autoclear import auto_clean
-from DeadlineTech.utils.thumbnails import gen_thumb
+from DeadlineTech.utils.thumbnails import get_thumb
 from strings import get_string
 
 autoend = {}
