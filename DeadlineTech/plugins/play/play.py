@@ -22,6 +22,10 @@ from DeadlineTech.utils.inline import (
     slider_markup,
     track_markup,
 )
+from DeadlineTech.utils.database import (
+    add_served_chat,
+    add_served_user
+)
 from DeadlineTech.utils.logger import play_logs
 from DeadlineTech.utils.stream.stream import stream
 from config import BANNED_USERS, lyrical
@@ -106,6 +110,7 @@ async def play_commnd(
                     streamtype="telegram",
                     forceplay=fplay,
                 )
+                await add_served_chat(message.chat.id)
             except Exception as e:
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
@@ -150,6 +155,7 @@ async def play_commnd(
                     streamtype="telegram",
                     forceplay=fplay,
                 )
+                await add_served_chat(message.chat.id)
             except Exception as e:
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
@@ -285,6 +291,7 @@ async def play_commnd(
                     streamtype="index",
                     forceplay=fplay,
                 )
+                await add_served_chat(message.chat.id)
             except Exception as e:
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
@@ -342,6 +349,7 @@ async def play_commnd(
                 spotify=spotify,
                 forceplay=fplay,
             )
+            await add_served_chat(message.chat.id)
         except Exception as e:
             ex_type = type(e).__name__
             err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
@@ -468,6 +476,7 @@ async def play_music(client, CallbackQuery, _):
             streamtype="youtube",
             forceplay=ffplay,
         )
+        await add_served_chat(message.chat.id)
     except Exception as e:
         ex_type = type(e).__name__
         err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
@@ -566,6 +575,7 @@ async def play_playlists_command(client, CallbackQuery, _):
             spotify=spotify,
             forceplay=ffplay,
         )
+        await add_served_chat(message.chat.id)
     except Exception as e:
         ex_type = type(e).__name__
         err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
