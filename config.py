@@ -14,7 +14,7 @@ API_HASH = getenv("API_HASH")
 BOT_TOKEN = getenv("BOT_TOKEN")
 
 #Get API_KEY from @DeadlineTechOwner or @DeadlineApiBot
-API_URL = getenv("API_URL", 'https://deadlinetech.site') #youtube song url
+API_URL = getenv("API_URL", 'https://api.thequickearn.xyz') #youtube song url
 VIDEO_API_URL = getenv("VIDEO_API_URL", 'https://api.video.thequickearn.xyz')
 API_KEY = getenv("API_KEY", None) # youtube song api key, generate free key or buy paid plan from panel.thequickearn.xyz
 
