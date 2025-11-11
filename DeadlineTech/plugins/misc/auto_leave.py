@@ -25,7 +25,7 @@ logger = logging.getLogger("AutoLeave")
 
 # Constants
 EXCLUDED_CHAT_IDS = {config.LOGGER_ID}
-MAX_LEAVES_PER_RUN = 200
+MAX_LEAVES_PER_RUN = 120
 TIMEZONE = "Asia/Kolkata"
 TARGET_HOUR = 4
 TARGET_MINUTE = 35
